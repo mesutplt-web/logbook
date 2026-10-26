@@ -1,0 +1,2449 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Logbook"/>
+<meta name="theme-color" content="#1a2a3a"/>
+<title>EASA Pilot Logbook v7.20</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" href="icon-32.png"/>
+<link rel="apple-touch-icon" href="icon-180.png"/>
+<style>
+/* ── RESET & BASE ── */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
+html,body,#root{min-height:100%;background:#f0f2f5;}
+body{-webkit-overflow-scrolling:touch;overscroll-behavior-y:none;font-family:Arial,sans-serif;}
+input,select,button,textarea{font-family:Arial,sans-serif;}
+/* prevent iOS zoom */
+input,select,textarea{font-size:16px!important;}
+button{font-size:14px!important;}
+input[type="date"]{-webkit-appearance:none;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:#e8eaed;}
+::-webkit-scrollbar-thumb{background:#9aacbe;border-radius:3px;}
+
+/* ── FORM LIGHT THEME ── */
+.fcard{background:#fff;border:1px solid #d0d8e4;border-radius:10px;padding:14px 16px;}
+.flabel{font-size:10px;font-weight:700;color:#4a6080;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:5px;display:block;}
+.finp{background:#f8f9fb;border:1.5px solid #c8d4e0;border-radius:6px;color:#1a2a3a;
+  padding:0 10px;outline:none;width:100%;display:block;transition:border-color .15s;}
+.finp:focus{border-color:#3a6aaa;background:#fff;}
+.finp-sm{font-size:11px!important;padding:0 2px!important;letter-spacing:0;}
+.finp-sm::placeholder{font-size:10px;color:#b0bcc8;}
+.finp.err{border-color:#c0392b!important;}
+.finp-time{background:#f8f9fb;border:1.5px solid #c8d4e0;border-radius:6px;color:#1a2a3a;
+  padding:0 10px;outline:none;transition:border-color .15s;font-family:Arial,sans-serif;
+  font-size:16px!important;font-weight:700;letter-spacing:1px;text-align:center;width:90px;height:44px;}
+.finp-time:focus{border-color:#3a6aaa;background:#fff;}
+.finp-time.err{border-color:#c0392b!important;}
+.finp-time::placeholder{color:#b0bcc8;font-weight:400;}
+
+/* Radio-select toggle buttons */
+.sel-btn{height:38px;border:1.5px solid #c8d4e0;background:#f8f9fb;color:#4a6080;
+  padding:0 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;
+  font-family:Arial,sans-serif;white-space:nowrap;transition:all .15s;display:flex;
+  align-items:center;gap:6px;}
+.sel-btn.active{background:#1a3a6e;border-color:#3a6aaa;color:#fff;}
+.sel-btn:hover:not(.active){background:#e8f0f8;border-color:#3a6aaa;}
+.sel-btn .dot{width:10px;height:10px;border-radius:50%;border:2px solid currentColor;
+  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sel-btn.active .dot::after{content:'';width:5px;height:5px;border-radius:50%;background:#fff;display:block;}
+.auto-badge{font-size:9px;background:"rgba(255,255,255,0.2)";color:#a0c8ff;
+  border:1px solid #3a6aaa;border-radius:3px;padding:"1px 4px";margin-left:4px;}
+.ac-btn{height:40px;border:1.5px solid #c8d4e0;background:#f8f9fb;color:#4a6080;
+  padding:0 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;
+  font-family:Arial,sans-serif;white-space:nowrap;transition:all .15s;}
+.ac-btn.sel{background:#1a3a6e;border-color:#3a6aaa;color:#fff;}
+.ac-btn:hover:not(.sel){background:#e8f0f8;border-color:#3a6aaa;}
+
+/* ── LOGBOOK TABLE — light, iPad fit ── */
+.lb-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.lb-table-screen{width:100%;border-collapse:collapse;table-layout:fixed;min-width:0;}
+.lb-table-screen th,.lb-table-screen td{
+  border:1px solid #c8d4e0;padding:4px 3px;text-align:center;vertical-align:middle;
+  font-family:Arial,sans-serif;overflow:hidden;white-space:nowrap;}
+.lb-table-screen th{font-size:9px;font-weight:700;color:#1a2a3a;background:#dce8f4;line-height:1.2;}
+.lb-table-screen th.sub{background:#eef4f9;font-size:8px;color:#2a3a5a;}
+.lb-table-screen td{font-size:11px;color:#000080;background:#fff;}
+.lb-table-screen tr:hover td{background:#eef4fb;}
+.lb-table-screen td.night{color:#0000cc;font-weight:700;}
+.lb-table-screen td.day{color:#5a3a00;font-weight:700;}
+.lb-table-screen td.total{color:#00004a;font-weight:700;font-size:12px;}
+.lb-table-screen .tot-row td{background:#dce8f4;font-weight:700;font-size:11px;color:#00004a;}
+.lb-table-screen .prev-row td,.lb-table-screen .grand-row td{
+  background:#e8f0f8;font-size:10px;font-weight:700;color:#1a2a3a;}
+.lb-table-screen .prev-marker-row td{
+  background:linear-gradient(180deg,#fff4d6,#fce8b8)!important;
+  border-top:2px solid #d4a72c;border-bottom:2px solid #d4a72c;
+  font-size:11px;font-weight:700;color:#5a3e00;}
+.lb-table-screen .syn-th{background:#ede8f5!important;color:#3a1a6a!important;}
+.lb-table-screen .syn-td{background:#faf8fd;color:#3a1a6a;}
+.lb-table-screen .ins-th{background:#f0e8f5!important;color:#4a1a6a!important;}
+.lb-table-screen .ins-td{background:#fdf8fd;}
+
+/* Edit mode highlight */
+.editing-row td{background:#fff8e8!important;outline:2px solid #f5a820;}
+
+/* ── PRINT — A4 landscape, siyah başlık, lacivert data ── */
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  html,body{background:white!important;margin:0;padding:0;}
+  .no-print{display:none!important;}
+  .print-show{display:block!important;}
+  @page{size:A4 landscape;margin:4mm 5mm;}
+
+  .p-page{font-family:Arial,sans-serif;font-size:6pt;color:#000080;width:100%;}
+
+  .p-title{text-align:center;border-bottom:0.8pt solid #000;padding-bottom:1.5mm;margin-bottom:2mm;}
+  .p-title-main{font-size:8.5pt;font-weight:700;color:#000;}
+  .p-title-sub{font-size:6pt;color:#000;margin-top:0.8mm;}
+
+  .p-tbl{width:100%;border-collapse:collapse;table-layout:fixed;}
+  .p-tbl th,.p-tbl td{
+    border:0.35pt solid #000;
+    text-align:center;vertical-align:middle;
+    overflow:hidden;padding:0.2mm 0.3mm;word-break:break-word;
+    font-family:Arial,sans-serif;}
+  /* Group headers — siyah yazı */
+  .p-tbl .rg th{
+    font-size:5pt;font-weight:700;height:4.5mm;
+    background:#dce8f4!important;color:#000;line-height:1.2;padding:0.4mm 0.2mm;}
+  /* Sub headers — siyah yazı */
+  .p-tbl .rs th{
+    font-size:4.5pt;font-weight:700;height:3.8mm;
+    background:#eef4f9!important;color:#000;line-height:1.1;padding:0.2mm 0.2mm;}
+  /* Data rows — lacivert */
+  .p-tbl .rd td{font-size:6pt;height:5mm;color:#000080;padding:0.2mm 0.3mm;}
+  /* Totals */
+  .p-tbl .rt td{font-size:5.5pt;font-weight:700;height:4.5mm;
+    background:#dce8f4!important;color:#000080;padding:0.2mm 0.3mm;}
+  .p-tbl .rp td,.p-tbl .rr td{
+    font-size:5pt;height:4mm;background:#e8f0f8!important;
+    color:#000080;padding:0.2mm 0.3mm;}
+  .c-n{color:#0000cc!important;font-weight:700;}
+  .c-d{color:#5a3a00!important;font-weight:700;}
+  .c-t{font-weight:700;color:#00004a!important;}
+  .s-g{background:#ede8f5!important;}
+  .s-s{background:#f5f2fa!important;}
+  .s-d{background:#faf8fd!important;}
+  .i-g{background:#f0e8f5!important;}
+
+  /* Column widths — total 287mm (297-10mm margins) */
+  .w1{width:12mm;}.w2{width:7mm;}.w3{width:10mm;}
+  .w4{width:8mm;}.w5{width:8mm;}
+  .w6{width:8mm;}.w7{width:8mm;}
+  .w8{width:8mm;}.w9{width:8mm;}
+  .w10{width:9mm;}.w11{width:9mm;}.w12{width:17mm;}
+  .w13{width:6mm;}.w14{width:6mm;}
+  .w15{width:8mm;}.w16{width:7mm;}
+  .w17{width:8mm;}.w18{width:8mm;}.w19{width:7mm;}
+  .w20{width:11mm;}
+  .w21{width:11mm;}.w22{width:11mm;}.w23{width:10mm;}
+  .w24{width:26mm;}
+  /* 12+7+10+8+8+8+8+8+8+9+9+17+6+6+8+7+8+8+7+11+11+11+10+26 = 287mm ✓ */
+
+  .p-foot{margin-top:2mm;font-size:5pt;color:#000;
+    border-top:0.4pt solid #000;padding-top:1mm;display:flex;justify-content:space-between;}
+}
+</style>
+</head>
+<body>
+<div id="root">
+  <div style="padding:40px 20px;text-align:center;color:#4a6080;font-family:Arial,sans-serif;">
+    Yükleniyor... <span style="font-size:12px;color:#9aacbe;">(sayfa birkaç saniye içinde açılmalı)</span>
+  </div>
+</div>
+<script>
+// Görünür hata yakalayıcı — sayfa tamamen boş kalmasın
+window.addEventListener('error',function(e){
+  var root=document.getElementById('root');
+  if(root && root.innerHTML.indexOf('Yükleniyor')!==-1){
+    root.innerHTML='<div style="padding:30px 20px;max-width:600px;margin:0 auto;font-family:Arial,sans-serif;">'
+      +'<div style="background:#fdecea;border:1px solid #e0a0a0;border-radius:8px;padding:16px;color:#8a1a1a;">'
+      +'<strong>⚠ Sayfa yüklenirken bir sorun oluştu.</strong><br/><br/>'
+      +'Hata: '+(e.message||'Bilinmeyen hata')+'<br/><br/>'
+      +'<strong>Öneri:</strong> Bu dosyayı doğrudan çift tıklamak yerine, bir web sunucusuna '
+      +'(örn. netlify.com/drop) yükleyip oradan açmayı deneyin — bazı tarayıcı güvenlik '
+      +'kısıtlamaları dosyayı doğrudan (file://) açtığınızda devreye girebiliyor.'
+      +'</div></div>';
+  }
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<!-- Tesseract.js artık lazy-load ediliyor: sayfa file:// altında da açılabilsin diye -->
+<script type="text/babel">
+const{useState,useMemo,useEffect,useRef,useCallback}=React;
+const F="Arial,sans-serif";
+
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const L={
+tr:{
+  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v7.20",
+  pilot:"Pilot Adı",lic:"Lisans No",
+  secForm:"✦ Uçuş Girişi",secLog:"✦ Logbook",
+  fDate:"Tarih",fAC:"Uçak Tipi",fReg:"Tescil",fLdg:"İniş",
+  fDep:"🛫 Kalkış",fArr:"🛬 Varış",fDepT:"Kalkış Saati (UTC)",fArrT:"Varış Saati (UTC)",
+  fPilot:"Pilot Süresi",fSE:"SP-SE",fME:"SP-ME",fMP:"Çok-P",
+  fFn:"Pilot Fonksiyon + IFR",fPIC:"PIC",fCO:"Yrd.Pilot",fDual:"Dual",fIFR:"IFR",
+  fSyn:"13 — Synthetic Training",fSynD:"Tarih",fSynT:"Tip",fSynS:"Süre",
+  fPICn:"PIC Adı",fRmk:"Notlar / Endorsements",
+  addBtn:"+ LOGBOOK'A EKLE",updateBtn:"✓ GÜNCELLE",cancelBtn:"İptal",
+  addOk:"✓ Eklendi",updateOk:"✓ Güncellendi",delOk:"Silindi",
+  filterFrom:"Başlangıç",filterTo:"Bitiş",filterBtn:"Uygula",clearBtn:"Tümü",
+  printBtn:"🖨 Yazdır",editBtn:"Düzenle",delBtn:"Sil",
+  empty:"Kayıt yok",
+  pageTotal:"SAYFA TOPLAMI",prevTotal:"REFERANS PREVIOUS TOTAL",grandTotal:"TOPLAM",
+  preview:"Önizleme",
+  req:"Zorunlu",min3:"Min 3",
+  // Print headers
+  ph_title:"PILOT FLIGHT LOGBOOK",ph_sub:"SHGM / EASA Part-FCL.050",
+  g1:"TARİH",g2:"UÇAK",g3:"KALKIŞ",g4:"VARIŞ",g5:"TEK PİLOT SÜRESİ",
+  g6:"ÇOK PİLOT",g7:"TOPLAM",g8:"PIC ADI",g9:"İNİŞ",g10:"OP.KOŞUL",
+  g11:"PİLOT FONKSİYON",g12:"INSTRUCTOR",g13:"SYNTHETIC TRAINING DEVICES SESSION",g14:"NOTLAR",
+  s2:"TİP",s3:"TESCİL",s4:"YER",s5:"SAAT",s6:"YER",s7:"SAAT",
+  s8:"SE",s9:"ME",s13d:"GÜN",s13n:"GECE",s15:"GECE",s16:"IFR",
+  s17:"PIC",s18:"YRD.P",s19:"DUAL",s21:"TARİH",s22:"TİP",s23:"SÜRE",
+  sig:"Pilot İmzası",
+},
+en:{
+  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v7.20",
+  pilot:"Pilot Name",lic:"Licence No",
+  secForm:"✦ Flight Entry",secLog:"✦ Logbook",
+  fDate:"Date",fAC:"Aircraft Type",fReg:"Registration",fLdg:"Ldgs",
+  fDep:"🛫 Departure",fArr:"🛬 Arrival",fDepT:"Departure Time (UTC)",fArrT:"Arrival Time (UTC)",
+  fPilot:"Pilot Time",fSE:"SP-SE",fME:"SP-ME",fMP:"Multi-P",
+  fFn:"Pilot Function + IFR",fPIC:"PIC",fCO:"Co-Pilot",fDual:"Dual",fIFR:"IFR",
+  fSyn:"13 — Synthetic Training",fSynD:"Date",fSynT:"Type",fSynS:"Time",
+  fPICn:"Name PIC",fRmk:"Remarks / Endorsements",
+  addBtn:"+ ADD TO LOGBOOK",updateBtn:"✓ UPDATE",cancelBtn:"Cancel",
+  addOk:"✓ Added",updateOk:"✓ Updated",delOk:"Removed",
+  filterFrom:"From",filterTo:"To",filterBtn:"Apply",clearBtn:"All",
+  printBtn:"🖨 Print",editBtn:"Edit",delBtn:"Del",
+  empty:"No entries",
+  pageTotal:"PAGE TOTAL",prevTotal:"REFERENCE PREVIOUS TOTAL",grandTotal:"TOTAL",
+  preview:"Preview",
+  req:"Required",min3:"Min 3",
+  ph_title:"PILOT FLIGHT LOGBOOK",ph_sub:"EASA Part-FCL.050",
+  g1:"DATE",g2:"AIRCRAFT",g3:"DEPARTURE",g4:"ARRIVAL",g5:"SINGLE PILOT TIME",
+  g6:"MULTI PILOT",g7:"TOTAL",g8:"NAME PIC",g9:"LANDING",g10:"OP.CONDITION",
+  g11:"PILOT FUNCTION TIME",g12:"INSTRUCTOR",g13:"SYNTHETIC TRAINING DEVICES SESSION",g14:"REMARKS",
+  s2:"TYPE",s3:"REG.",s4:"PLACE",s5:"TIME",s6:"PLACE",s7:"TIME",
+  s8:"SE",s9:"ME",s13d:"DAY",s13n:"NIGHT",s15:"NIGHT",s16:"IFR",
+  s17:"PIC",s18:"CO-P",s19:"DUAL",s21:"DATE",s22:"TYPE",s23:"TIME",
+  sig:"Pilot's Signature",
+}};
+
+// ── AIRPORTS ──────────────────────────────────────────────────────────────────
+const AP={
+  LTFM:{lat:41.2625,lon:28.7275,name:"İstanbul"},LTFJ:{lat:40.8986,lon:29.3092,name:"Sabiha Gökçen"},
+  LTAI:{lat:36.8987,lon:30.7992,name:"Antalya"},LTBA:{lat:40.9769,lon:28.8146,name:"Atatürk"},
+  LTAC:{lat:40.1281,lon:32.9951,name:"Esenboğa"},LTBS:{lat:37.2505,lon:28.7924,name:"Dalaman"},
+  LTBJ:{lat:38.2924,lon:27.157,name:"Adnan Menderes"},LTFE:{lat:37.0014,lon:37.4785,name:"Gazipaşa"},
+  LTCG:{lat:40.995,lon:39.7894,name:"Trabzon"},LTCC:{lat:37.7839,lon:40.2018,name:"Diyarbakır"},
+  LTCA:{lat:36.9363,lon:35.5543,name:"Adana"},LTBU:{lat:40.233,lon:29.0091,name:"Bursa"},
+  LTCE:{lat:39.7914,lon:41.1701,name:"Erzurum"},
+  EGLL:{lat:51.4775,lon:-0.4614,name:"London Heathrow"},EHAM:{lat:52.3086,lon:4.7639,name:"Amsterdam"},
+  EDDF:{lat:50.0333,lon:8.5706,name:"Frankfurt"},LFPG:{lat:49.0097,lon:2.5479,name:"Paris CDG"},
+  LEMD:{lat:40.4936,lon:-3.5668,name:"Madrid"},LIRF:{lat:41.8003,lon:12.2389,name:"Roma"},
+  LOWW:{lat:48.1103,lon:16.5697,name:"Viyana"},LSZH:{lat:47.4647,lon:8.5492,name:"Zürih"},
+  LGAV:{lat:37.9364,lon:23.9445,name:"Atina"},OMDB:{lat:25.2528,lon:55.3644,name:"Dubai"},
+  OERK:{lat:24.9597,lon:46.6988,name:"Riyad"},OBBI:{lat:26.2708,lon:50.6336,name:"Bahreyn"},
+  OKBK:{lat:29.2266,lon:47.9689,name:"Kuveyt"},LLBG:{lat:32.0114,lon:34.8867,name:"Tel Aviv"},
+  HECA:{lat:30.1219,lon:31.4056,name:"Kahire"},KJFK:{lat:40.6413,lon:-73.7781,name:"New York JFK"},
+  KLAX:{lat:33.9425,lon:-118.4081,name:"Los Angeles"},
+  VHHH:{lat:22.308,lon:113.9185,name:"Hong Kong"},RJTT:{lat:35.5494,lon:139.7798,name:"Tokyo"},
+  WSSS:{lat:1.3644,lon:103.9915,name:"Singapur"},OMAA:{lat:24.433,lon:54.6511,name:"Abu Dhabi"},
+  OTHH:{lat:25.2731,lon:51.6081,name:"Doha"},
+  OMDW:{lat:24.8967,lon:55.1614,name:"Al Maktoum (DWC)"},
+  LHBP:{lat:47.4298,lon:19.2611,name:"Budapest"},UTAA:{lat:37.9867,lon:58.3614,name:"Ashgabat"},
+  LIMC:{lat:45.6306,lon:8.7281,name:"Milano Malpensa"},EDDM:{lat:48.3538,lon:11.7861,name:"München"},
+  EDDB:{lat:52.3667,lon:13.5033,name:"Berlin"},LFPO:{lat:48.7233,lon:2.3794,name:"Paris Orly"},
+  EBBR:{lat:50.9014,lon:4.4844,name:"Brüksel"},EPWA:{lat:52.1657,lon:20.9671,name:"Varşova"},
+  LKPR:{lat:50.1008,lon:14.26,name:"Prag"},LROP:{lat:44.5711,lon:26.085,name:"Bükreş"},
+  LBSF:{lat:42.6967,lon:23.4114,name:"Sofya"},LYBE:{lat:44.8184,lon:20.3091,name:"Belgrad"},
+  LDZA:{lat:45.7429,lon:16.0688,name:"Zagreb"},LGTS:{lat:40.5197,lon:22.9709,name:"Selanik"},
+  UUEE:{lat:55.9736,lon:37.4125,name:"Moskova SVO"},UUDD:{lat:55.4088,lon:37.9063,name:"Moskova DME"},
+  UKBB:{lat:50.345,lon:30.8947,name:"Kiev"},UGTB:{lat:41.6692,lon:44.9547,name:"Tiflis"},
+  UBBB:{lat:40.4675,lon:50.0467,name:"Bakü"},UDYZ:{lat:40.1473,lon:44.3959,name:"Erivan"},
+  UTTT:{lat:38.5667,lon:68.825,name:"Duşanbe"},UAFM:{lat:43.3521,lon:77.0405,name:"Almatı"},
+  UTNU:{lat:42.4575,lon:59.6225,name:"Nukus"},UTSB:{lat:39.5595,lon:66.9831,name:"Semerkant"},
+  UTSS:{lat:41.2579,lon:69.2812,name:"Taşkent"},OAKB:{lat:34.5658,lon:69.2122,name:"Kabil"},
+  OPKC:{lat:24.9065,lon:67.1608,name:"Karaçi"},OPLA:{lat:31.5216,lon:74.4036,name:"Lahor"},
+  OPIS:{lat:33.5617,lon:73.0992,name:"İslamabad"},VABB:{lat:19.0887,lon:72.8679,name:"Mumbai"},
+  VIDP:{lat:28.5562,lon:77.1,name:"Delhi"},VOMM:{lat:12.99,lon:80.1693,name:"Chennai"},
+  ZBAA:{lat:40.0801,lon:116.5846,name:"Pekin"},ZSPD:{lat:31.1434,lon:121.8052,name:"Şanghay"},
+  ZGGG:{lat:23.3924,lon:113.2988,name:"Guangzhou"},VTBS:{lat:13.6811,lon:100.7473,name:"Bangkok"},
+  WMKK:{lat:2.7456,lon:101.7099,name:"Kuala Lumpur"},RPLL:{lat:14.5086,lon:121.0198,name:"Manila"},
+  RKSI:{lat:37.4602,lon:126.4407,name:"Seul"},EIDW:{lat:53.4213,lon:-6.2701,name:"Dublin"},
+  EKCH:{lat:55.6181,lon:12.656,name:"Kopenhag"},ENGM:{lat:60.1976,lon:11.1004,name:"Oslo"},
+  ESSA:{lat:59.6519,lon:17.9186,name:"Stockholm"},EFHK:{lat:60.3172,lon:24.9633,name:"Helsinki"},
+  LPPT:{lat:38.7813,lon:-9.1359,name:"Lizbon"},GCTS:{lat:28.0445,lon:-16.5725,name:"Tenerife"},
+  GMMN:{lat:33.3675,lon:-7.59,name:"Kazablanka"},DTTA:{lat:36.851,lon:10.2272,name:"Tunus"},
+  HLLT:{lat:32.6633,lon:13.1591,name:"Trablus"},
+  // ── Avrupa (ilave) ──
+  EDDL:{lat:51.2895,lon:6.7668,name:"Düsseldorf"},EDDH:{lat:53.6304,lon:9.9882,name:"Hamburg"},
+  EDDK:{lat:50.8659,lon:7.1427,name:"Köln/Bonn"},EDDS:{lat:48.6899,lon:9.2219,name:"Stuttgart"},
+  EDDT:{lat:52.5597,lon:13.2877,name:"Berlin Tegel"},EDDW:{lat:53.0475,lon:8.7867,name:"Bremen"},
+  EGKK:{lat:51.1481,lon:-0.1903,name:"London Gatwick"},EGSS:{lat:51.885,lon:0.235,name:"London Stansted"},
+  EGGW:{lat:51.8747,lon:-0.3683,name:"London Luton"},EGCC:{lat:53.3537,lon:-2.275,name:"Manchester"},
+  EGPH:{lat:55.95,lon:-3.3725,name:"Edinburgh"},EGPF:{lat:55.8719,lon:-4.4331,name:"Glasgow"},
+  EGBB:{lat:52.4539,lon:-1.7480,name:"Birmingham"},EGGD:{lat:51.3827,lon:-2.7191,name:"Bristol"},
+  LFPB:{lat:48.9694,lon:2.4414,name:"Paris Le Bourget"},LFML:{lat:43.4367,lon:5.2150,name:"Marsilya"},
+  LFLL:{lat:45.7256,lon:5.0811,name:"Lyon"},LFBO:{lat:43.6293,lon:1.3638,name:"Toulouse"},
+  LFSB:{lat:47.59,lon:7.5296,name:"Basel/Mulhouse"},LFMN:{lat:43.6584,lon:7.2159,name:"Nice"},
+  LEBL:{lat:41.2971,lon:2.0785,name:"Barselona"},LEPA:{lat:39.5517,lon:2.7388,name:"Palma de Mallorca"},
+  LEMG:{lat:36.6749,lon:-4.4991,name:"Malaga"},LEAL:{lat:38.2822,lon:-0.5582,name:"Alicante"},
+  LEVC:{lat:39.4893,lon:-0.4816,name:"Valensiya"},LEZL:{lat:37.418,lon:-5.8931,name:"Sevilla"},
+  LPPR:{lat:41.2481,lon:-8.6814,name:"Porto"},LPFR:{lat:37.0144,lon:-7.9659,name:"Faro"},
+  LIML:{lat:45.4451,lon:8.7267,name:"Milano Linate"},LIPZ:{lat:45.5053,lon:12.3519,name:"Venedik"},
+  LIRN:{lat:40.8844,lon:14.2908,name:"Napoli"},LICJ:{lat:38.1759,lon:13.091,name:"Palermo"},
+  LICC:{lat:37.4668,lon:15.0664,name:"Katanya"},LIRQ:{lat:43.81,lon:11.205,name:"Floransa"},
+  LIPX:{lat:45.3959,lon:10.8885,name:"Verona"},LIEE:{lat:39.2515,lon:9.0545,name:"Cagliari"},
+  LOWS:{lat:47.7933,lon:13.0043,name:"Salzburg"},LOWI:{lat:47.26,lon:11.344,name:"Innsbruck"},
+  LSGG:{lat:46.2381,lon:6.1089,name:"Cenevre"},LSZB:{lat:46.9141,lon:7.4971,name:"Bern"},
+  EHEH:{lat:51.4501,lon:5.3747,name:"Eindhoven"},EHRD:{lat:51.9569,lon:4.4372,name:"Rotterdam"},
+  EBCI:{lat:50.4592,lon:4.4538,name:"Charleroi"},EBLG:{lat:50.6374,lon:5.4432,name:"Liège"},
+  ESGG:{lat:57.6628,lon:12.2798,name:"Göteborg"},ESMS:{lat:55.5363,lon:13.3762,name:"Malmö"},
+  ENZV:{lat:58.8767,lon:5.6378,name:"Stavanger"},ENBR:{lat:60.2934,lon:5.2181,name:"Bergen"},
+  EKBI:{lat:55.7403,lon:9.1518,name:"Billund"},BIKF:{lat:63.985,lon:-22.6056,name:"Reykjavik"},
+  EFTP:{lat:61.4692,lon:23.6042,name:"Tampere"},EETN:{lat:59.4133,lon:24.8328,name:"Tallinn"},
+  EVRA:{lat:56.9236,lon:23.9711,name:"Riga"},EYVI:{lat:54.6341,lon:25.2858,name:"Vilnius"},
+  EPGD:{lat:54.3776,lon:18.4662,name:"Gdansk"},EPKK:{lat:50.0777,lon:19.7848,name:"Krakow"},
+  LZIB:{lat:48.1702,lon:17.2127,name:"Bratislava"},LJLJ:{lat:46.2237,lon:14.4576,name:"Ljubljana"},
+  LWSK:{lat:41.9616,lon:21.6214,name:"Üsküp"},LATI:{lat:41.4147,lon:19.7206,name:"Tiran"},
+  LCPH:{lat:34.875,lon:32.4857,name:"Larnaka"},LMML:{lat:35.8575,lon:14.4775,name:"Malta"},
+  // ── Kuzey Amerika ──
+  KORD:{lat:41.9786,lon:-87.9048,name:"Chicago O'Hare"},KATL:{lat:33.6407,lon:-84.4277,name:"Atlanta"},
+  KDFW:{lat:32.8998,lon:-97.0403,name:"Dallas/Fort Worth"},KDEN:{lat:39.8561,lon:-104.6737,name:"Denver"},
+  KSFO:{lat:37.6213,lon:-122.379,name:"San Francisco"},KSEA:{lat:47.4502,lon:-122.3088,name:"Seattle"},
+  KMIA:{lat:25.7959,lon:-80.287,name:"Miami"},KIAD:{lat:38.9531,lon:-77.4565,name:"Washington Dulles"},
+  KBOS:{lat:42.3656,lon:-71.0096,name:"Boston"},KPHL:{lat:39.8744,lon:-75.2424,name:"Philadelphia"},
+  KIAH:{lat:29.9902,lon:-95.3368,name:"Houston"},KLAS:{lat:36.084,lon:-115.1537,name:"Las Vegas"},
+  KEWR:{lat:40.6925,lon:-74.1687,name:"Newark"},KMSP:{lat:44.882,lon:-93.2218,name:"Minneapolis"},
+  KDTW:{lat:42.2124,lon:-83.3534,name:"Detroit"},KCLT:{lat:35.214,lon:-80.9431,name:"Charlotte"},
+  CYYZ:{lat:43.6772,lon:-79.6306,name:"Toronto"},CYVR:{lat:49.1939,lon:-123.1844,name:"Vancouver"},
+  CYUL:{lat:45.4706,lon:-73.7408,name:"Montreal"},CYYC:{lat:51.1139,lon:-114.0203,name:"Calgary"},
+  MMMX:{lat:19.4363,lon:-99.0721,name:"Mexico City"},MMUN:{lat:21.0365,lon:-86.8771,name:"Cancun"},
+  // ── Güney Amerika ──
+  SBGR:{lat:-23.4356,lon:-46.4731,name:"São Paulo"},SBGL:{lat:-22.8099,lon:-43.2506,name:"Rio de Janeiro"},
+  SAEZ:{lat:-34.8222,lon:-58.5358,name:"Buenos Aires"},SCEL:{lat:-33.393,lon:-70.7858,name:"Santiago"},
+  SKBO:{lat:4.7016,lon:-74.1469,name:"Bogota"},SPJC:{lat:-12.0219,lon:-77.1143,name:"Lima"},
+  // ── Afrika ──
+  FACT:{lat:-33.9649,lon:18.6027,name:"Cape Town"},FAOR:{lat:-26.1392,lon:28.246,name:"Johannesburg"},
+  DNMM:{lat:6.5774,lon:3.3212,name:"Lagos"},GOOY:{lat:14.7397,lon:-17.4902,name:"Dakar"},
+  HAAB:{lat:8.9779,lon:38.7993,name:"Addis Ababa"},HKJK:{lat:-1.3192,lon:36.9278,name:"Nairobi"},
+  FQMA:{lat:-25.9208,lon:32.5726,name:"Maputo"},FVHA:{lat:-17.9318,lon:31.0928,name:"Harare"},
+  FMEE:{lat:-20.4302,lon:57.6836,name:"Mauritius"},DAAG:{lat:36.691,lon:3.2155,name:"Cezayir"},
+  // ── Orta Doğu (ilave) ──
+  OEJN:{lat:21.6796,lon:39.1565,name:"Cidde"},OEMA:{lat:24.5534,lon:39.7051,name:"Medine"},
+  OMSJ:{lat:25.3286,lon:55.5172,name:"Sharjah"},OMRK:{lat:25.6136,lon:55.9386,name:"Ras Al Khaimah"},
+  OJAI:{lat:31.7226,lon:35.9932,name:"Amman"},ORBI:{lat:33.2625,lon:44.2346,name:"Bağdat"},
+  ORMM:{lat:36.2387,lon:43.9633,name:"Erbil"},OIIE:{lat:35.4161,lon:51.1522,name:"Tahran"},
+  // ── Güney/Orta Asya ──
+  VECC:{lat:22.6547,lon:88.4467,name:"Kalküta"},VOBL:{lat:13.1986,lon:77.7066,name:"Bangalore"},
+  VOHS:{lat:17.2403,lon:78.4294,name:"Haydarabad"},VANP:{lat:21.0922,lon:79.0472,name:"Nagpur"},
+  VNKT:{lat:27.6966,lon:85.3591,name:"Katmandu"},VGHS:{lat:23.8433,lon:90.3978,name:"Dakka"},
+  VCBI:{lat:7.1808,lon:79.8841,name:"Colombo"},OPRN:{lat:33.6167,lon:73.0992,name:"İslamabad Yeni"},
+  // ── Uzak Doğu / Okyanusya ──
+  ZSSS:{lat:31.1979,lon:121.3363,name:"Şanghay Hongqiao"},ZGSZ:{lat:22.6393,lon:113.8107,name:"Shenzhen"},
+  ZHCC:{lat:34.5197,lon:113.8408,name:"Zhengzhou"},ZPPP:{lat:25.1019,lon:102.9292,name:"Kunming"},
+  ZUUU:{lat:30.5785,lon:103.9469,name:"Chengdu"},VMMC:{lat:22.1496,lon:113.5916,name:"Makao"},
+  RCTP:{lat:25.0777,lon:121.2328,name:"Taipei"},RCKH:{lat:22.5771,lon:120.3499,name:"Kaohsiung"},
+  RKPC:{lat:33.5113,lon:126.4930,name:"Jeju"},RJAA:{lat:35.7647,lon:140.3864,name:"Narita"},
+  RJOO:{lat:34.7855,lon:135.4382,name:"Osaka Itami"},RJBB:{lat:34.4347,lon:135.2441,name:"Kansai"},
+  RJFF:{lat:33.5859,lon:130.4506,name:"Fukuoka"},RJCC:{lat:42.7752,lon:141.6923,name:"Sapporo"},
+  WIII:{lat:-6.1256,lon:106.6559,name:"Jakarta"},WADD:{lat:-8.7482,lon:115.1672,name:"Bali"},
+  WBKK:{lat:5.9372,lon:116.0511,name:"Kota Kinabalu"},WMKP:{lat:5.2971,lon:100.2767,name:"Penang"},
+  VTBD:{lat:13.9126,lon:100.6067,name:"Bangkok Don Mueang"},VTCC:{lat:18.7669,lon:98.9626,name:"Chiang Mai"},
+  VVNB:{lat:21.2212,lon:105.8072,name:"Hanoi"},VVTS:{lat:10.8188,lon:106.652,name:"Ho Chi Minh"},
+  VYYY:{lat:16.9073,lon:96.1332,name:"Yangon"},VDPP:{lat:11.5466,lon:104.8441,name:"Phnom Penh"},
+  RPVM:{lat:7.1255,lon:125.6456,name:"Davao"},YSSY:{lat:-33.9461,lon:151.1772,name:"Sydney"},
+  YMML:{lat:-37.6733,lon:144.8433,name:"Melbourne"},YBBN:{lat:-27.3842,lon:153.1175,name:"Brisbane"},
+  YPPH:{lat:-31.9403,lon:115.9669,name:"Perth"},YPAD:{lat:-34.945,lon:138.5306,name:"Adelaide"},
+  NZAA:{lat:-37.0082,lon:174.785,name:"Auckland"},
+};
+
+// IATA (3 harf) → ICAO (4 harf) eşleme — Crew Log tabloları genelde IATA kodu kullanır
+const IATA_TO_ICAO={
+  DWC:"OMDW", DXB:"OMDB", HKG:"VHHH", IST:"LTFM", SAW:"LTFJ",
+  AYT:"LTAI", ESB:"LTAC", DLM:"LTBS", ADB:"LTBJ", GZP:"LTFE",
+  TZX:"LTCG", DIY:"LTCC", ADA:"LTCA", YEI:"LTCE",
+  LHR:"EGLL", AMS:"EHAM", FRA:"EDDF", CDG:"LFPG", MAD:"LEMD",
+  FCO:"LIRF", VIE:"LOWW", ZRH:"LSZH", ATH:"LGAV",
+  RUH:"OERK", BAH:"OBBI", KWI:"OKBK", TLV:"LLBG", CAI:"HECA",
+  JFK:"KJFK", LAX:"KLAX", NRT:"RJTT", HND:"RJTT", SIN:"WSSS",
+  AUH:"OMAA", DOH:"OTHH",
+};
+function toIcao(code){
+  if(!code) return "";
+  const c=code.toUpperCase().trim();
+  if(c.length===4 && AP[c]) return c;              // zaten ICAO
+  if(c.length===3 && IATA_TO_ICAO[c]) return IATA_TO_ICAO[c]; // IATA→ICAO çevir
+  return c; // bilinmiyorsa olduğu gibi bırak (sabit eşik hesaplamasına düşer)
+}
+
+
+// ── SUN CALC (Jean Meeus — unchanged from v1/v2/v3) ───────────────────────────
+function sunTimes(ds,lat,lon){
+  const[y,mo,d]=ds.split("-").map(Number);
+  const JD=367*y-Math.floor(7*(y+Math.floor((mo+9)/12))/4)+Math.floor(275*mo/9)+d+1721013.5;
+  const T=(JD-2451545)/36525;
+  const L0=(280.46646+36000.76983*T)%360;
+  const M=Math.PI/180*((357.52911+35999.05029*T-.0001537*T*T)%360);
+  const C=(1.914602-.004817*T-.000014*T*T)*Math.sin(M)+(.019993-.000101*T)*Math.sin(2*M)+.000289*Math.sin(3*M);
+  const dec=Math.asin(Math.sin(Math.PI/180*(23.439291-.013004*T))*Math.sin(Math.PI/180*(L0+C)));
+  const cosH=(Math.sin(Math.PI/180*-.8333)-Math.sin(Math.PI/180*lat)*Math.sin(dec))/(Math.cos(Math.PI/180*lat)*Math.cos(dec));
+  if(Math.abs(cosH)>1)return cosH>1?{pn:true}:{pd:true};
+  const H=180/Math.PI*Math.acos(cosH);
+  const eot=(-.000075+.001868*Math.cos(T*2*Math.PI/365.25)-.032077*Math.sin(T*2*Math.PI/365.25)-.014615*Math.cos(2*T*2*Math.PI/365.25)-.04089*Math.sin(2*T*2*Math.PI/365.25))*229.18;
+  return{sr:Math.round(720-4*lon-eot-H*4),ss:Math.round(720-4*lon-eot+H*4)};
+}
+function pt(s){if(!s||s==="")return null;const[h,m]=s.split(":").map(Number);return isNaN(h)||isNaN(m)?null:h*60+m;}
+function hhmm(m){if(!m||m<=0)return"00:00";return`${String(Math.floor(Math.abs(m)/60)).padStart(2,"0")}:${String(Math.round(Math.abs(m)%60)).padStart(2,"0")}`;}
+// Seçilmeyen pilot time/function alanları için: 0 ise boş döndür
+function hhmmBlank(m){if(!m||m<=0)return"";return hhmm(m);}
+
+// ── KULLANICI TANIMLI MEYDANLAR (AP listesinde olmayanlar için) ───────────────
+// Versiyon bağımsız, paylaşılan bir anahtarda saklanır: bir kez girilen meydan
+// tüm versiyonlarda ve tüm uçuşlarda geçerli olur.
+const CUSTOM_AP_KEY="logbook_custom_airports";
+function loadCustomAirports(){
+  try{const s=localStorage.getItem(CUSTOM_AP_KEY);return s?JSON.parse(s):{};}catch{return{};}
+}
+function saveCustomAirports(obj){
+  try{localStorage.setItem(CUSTOM_AP_KEY,JSON.stringify(obj));}catch{}
+}
+// Koordinat formatı: N4727.7E01916.6  → (N/S)DDMM.m (E/W)DDDMM.m
+function parseCoord(str){
+  const m=String(str||"").toUpperCase().replace(/[\s,]/g,"").match(/^([NS])(\d{2})(\d{2}(?:\.\d+)?)([EW])(\d{3})(\d{2}(?:\.\d+)?)$/);
+  if(!m) return null;
+  const latD=+m[2],latM=+m[3],lonD=+m[5],lonM=+m[6];
+  if(latM>=60||lonM>=60||latD>90||lonD>180) return null;
+  const lat=(latD+latM/60)*(m[1]==="S"?-1:1);
+  const lon=(lonD+lonM/60)*(m[4]==="W"?-1:1);
+  return {lat:Math.round(lat*10000)/10000,lon:Math.round(lon*10000)/10000};
+}
+function getAirport(code){
+  const c=toIcao(code);
+  if(!c) return null;
+  if(AP[c]) return AP[c];
+  const custom=loadCustomAirports();
+  if(custom[c]) return custom[c];
+  return null;
+}
+// Bir uçuş kaydının kalkış/varış meydanlarından AP'de VE kullanıcı tablosunda
+// olmayanları döndürür — kayıt eklenmeden önce kontrol etmek için kullanılır.
+function missingAirports(r){
+  const missing=[];
+  const dc=toIcao(r.from),ac=toIcao(r.to);
+  if(dc && dc.length>=3 && !getAirport(dc)) missing.push(dc);
+  if(ac && ac.length>=3 && ac!==dc && !getAirport(ac)) missing.push(ac);
+  return missing;
+}
+
+// ── FLIGHT CALC (per-minute interpolation — v1 bug fix preserved) ─────────────
+function calcFlight(r){
+  const off=pt(r.depTime),on=pt(r.arrTime);
+  if(off===null||on===null)return{total:0,night:0,day:0,ldgDay:0,ldgNight:0};
+  let total=on-off;if(total<0)total+=1440;if(!total)return{total:0,night:0,day:0,ldgDay:0,ldgNight:0};
+  const dep=getAirport(r.from),arr=getAirport(r.to);
+  if(!dep&&!arr){
+    let night=0;for(let i=0;i<total;i++){const t=(off+i)%1440;if(t>=1200||t<360)night++;}
+    return{total,night,day:total-night,ldgDay:0,ldgNight:parseInt(r.ldgs)||1};
+  }
+  let night=0;
+  for(let i=0;i<total;i++){
+    const t=(off+i)%1440;const frac=total>1?i/(total-1):0;
+    const lat=dep&&arr?dep.lat+frac*(arr.lat-dep.lat):dep?dep.lat:arr.lat;
+    const lon=dep&&arr?dep.lon+frac*(arr.lon-dep.lon):dep?dep.lon:arr.lon;
+    if(!r.date){if(t>=1200||t<360)night++;continue;}
+    const s=sunTimes(r.date,lat,lon);
+    if(s.pn){night++;continue;}if(s.pd)continue;
+    const ns=((s.ss+30)%1440+1440)%1440,ne=((s.sr-30)%1440+1440)%1440;
+    if(ns>ne){if(t>=ns||t<ne)night++;}else{if(t>=ns&&t<ne)night++;}
+  }
+  const endT=(off+total)%1440;
+  const endLat=arr?arr.lat:dep.lat,endLon=arr?arr.lon:dep.lon;
+  let nightLdg=false;
+  if(r.date){
+    const se=sunTimes(r.date,endLat,endLon);
+    if(!se.pd&&!se.pn){
+      const ns=((se.ss+30)%1440+1440)%1440,ne=((se.sr-30)%1440+1440)%1440;
+      nightLdg=ns>ne?(endT>=ns||endT<ne):(endT>=ns&&endT<ne);
+    }
+  }
+  const tl=parseInt(r.ldgs)||1;
+  return{total,night,day:total-night,ldgDay:nightLdg?0:tl,ldgNight:nightLdg?tl:0};
+}
+
+// Tesseract.js'i sadece ihtiyaç duyulduğunda yükle (file:// altında da sayfa açılabilsin diye)
+let _tesseractLoadPromise=null;
+function loadTesseract(){
+  if(window.Tesseract) return Promise.resolve(window.Tesseract);
+  if(_tesseractLoadPromise) return _tesseractLoadPromise;
+  _tesseractLoadPromise=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    s.onload=()=>resolve(window.Tesseract);
+    s.onerror=()=>reject(new Error('Tesseract.js yüklenemedi — internet bağlantınızı kontrol edin'));
+    document.head.appendChild(s);
+  });
+  return _tesseractLoadPromise;
+}
+
+// PDF.js'i sadece PDF yüklendiğinde indir — metin katmanını doğrudan okumak için
+let _pdfJsLoadPromise=null;
+function loadPdfJs(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if(_pdfJsLoadPromise) return _pdfJsLoadPromise;
+  _pdfJsLoadPromise=new Promise((resolve,reject)=>{
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload=()=>{
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      resolve(window.pdfjsLib);
+    };
+    s.onerror=()=>reject(new Error('PDF.js yüklenemedi — internet bağlantınızı kontrol edin'));
+    document.head.appendChild(s);
+  });
+  return _pdfJsLoadPromise;
+}
+
+// PDF dosyasından tüm sayfaların metin katmanını çıkarır
+async function extractPdfText(file){
+  const pdfjsLib=await loadPdfJs();
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let fullText="";
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const content=await page.getTextContent();
+    // Satır yapısını korumak için Y koordinatına göre grupla
+    const items=content.items;
+    let lastY=null, line="";
+    const lines=[];
+    for(const it of items){
+      const y=it.transform[5];
+      if(lastY!==null && Math.abs(y-lastY)>2){
+        lines.push(line.trim());
+        line="";
+      }
+      line+=it.str+" ";
+      lastY=y;
+    }
+    if(line.trim()) lines.push(line.trim());
+    fullText+=lines.join("\n")+"\n";
+  }
+  return fullText;
+}
+
+// ── GÖRÜNTÜ ÖN İŞLEME — OCR doğruluğunu artırmak için ────────────────────────
+// ACARS ekranları genelde: düşük çözünürlük, yeşil-üstü-siyah kontrast, camdan
+// yansıma/parlama içerir. Bu adımlar Tesseract'ın okumasını belirgin iyileştirir:
+//   1) Büyütme (upscale) — küçük karakterleri OCR için büyütür
+//   2) Gri tonlama — renk kanalı gürültüsünü eler
+//   3) Kontrast germe (histogram stretch) — soluk/parlak alanları netleştirir
+//   4) Adaptif eşikleme (thresholding) — siyah zemin üzerine beyaz yazıyı
+//      net siyah-beyaz (binary) görüntüye çevirir, Tesseract için ideal format
+function preprocessImage(file){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    const srcUrl=URL.createObjectURL(file);
+    img.onload=()=>{
+      try{
+        URL.revokeObjectURL(srcUrl);
+        // 1) Ölçekleme — küçük fotoğrafları büyüt (min 1400px), kamera fotoğraflarını (12MP+)
+        //    küçült (max 1800px): iOS'ta dev canvas bellek tüketip sayfayı çökertiyordu.
+        const MIN_W=1400, MAX_W=1800;
+        const scale=img.width<MIN_W ? MIN_W/img.width : (img.width>MAX_W ? MAX_W/img.width : 1);
+        const w=Math.round(img.width*scale);
+        const h=Math.round(img.height*scale);
+
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.imageSmoothingEnabled=true;
+        ctx.imageSmoothingQuality='high';
+        ctx.drawImage(img,0,0,w,h);
+        img.src=""; // büyük görüntü belleğini bırak
+
+        // Orijinal önizleme için küçük JPEG (tam boyutlu fotoğrafı <img> ile göstermeyelim)
+        const tc=document.createElement('canvas');
+        const tw=Math.min(700,w), th=Math.round(h*tw/w);
+        tc.width=tw; tc.height=th;
+        tc.getContext('2d').drawImage(canvas,0,0,tw,th);
+        const origThumb=tc.toDataURL('image/jpeg',0.7);
+        tc.width=tc.height=0;
+
+        const imageData=ctx.getImageData(0,0,w,h);
+        const px=imageData.data;
+
+        // 2) Gri tonlama + parlaklık histogramı çıkar
+        const gray=new Uint8ClampedArray(w*h);
+        let minV=255, maxV=0;
+        for(let i=0;i<px.length;i+=4){
+          // Luminance formülü — insan gözü algısına yakın ağırlıklandırma
+          const g=0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];
+          const gi=i/4;
+          gray[gi]=g;
+          if(g<minV)minV=g;
+          if(g>maxV)maxV=g;
+        }
+
+        // 3) Kontrast germe (histogram stretch) — minV→0, maxV→255 aralığına yay
+        const range=Math.max(1,maxV-minV);
+        for(let i=0;i<gray.length;i++){
+          gray[i]=((gray[i]-minV)/range)*255;
+        }
+
+        // 4) Basit adaptif eşikleme — ortalama parlaklığa göre eşik belirle
+        let sum=0;
+        for(let i=0;i<gray.length;i++) sum+=gray[i];
+        const mean=sum/gray.length;
+        // ACARS ekranları koyu zeminli olduğundan eşiği ortalamanın biraz altına çekiyoruz
+        const threshold=mean*0.85;
+
+        for(let i=0;i<gray.length;i++){
+          const v=gray[i]>threshold?255:0; // beyaz metin/siyah zemin → siyah metin/beyaz zemin (Tesseract varsayılanı için ters çevir)
+          const inv=255-v; // Tesseract siyah-yazı-beyaz-zemin ile daha iyi çalışır
+          const di=i*4;
+          px[di]=inv; px[di+1]=inv; px[di+2]=inv; px[di+3]=255;
+        }
+
+        ctx.putImageData(imageData,0,0);
+        canvas.toBlob(blob=>{
+          canvas.width=canvas.height=0; // canvas belleğini serbest bırak
+          if(blob) resolve({blob,previewUrl:URL.createObjectURL(blob),origThumb});
+          else reject(new Error('Görüntü işlenemedi'));
+        },'image/png');
+      }catch(err){ reject(err); }
+    };
+    img.onerror=()=>{URL.revokeObjectURL(srcUrl);reject(new Error('Görüntü yüklenemedi'));};
+    img.src=srcUrl;
+  });
+}
+
+
+//   9388-03        LHBP-LIMC
+//   OUT - 07:11    OFF - 07:26    ON - 08:39    IN - 08:55
+// ── ACARS OCR PARSER ───────────────────────────────────────────────────────────
+// ACARS-FLT LOG ekran formatını ayrıştırır:
+//   FLT NUM-DATE   ORIG-DEST
+//   9388-03        LHBP-LIMC
+//   OUT - 07:11    OFF - 07:26    ON - 08:39    IN - 08:55
+function parseAcarsText(raw){
+  const text=(raw||"").toUpperCase();
+  const result={from:"",to:"",depTime:"",arrTime:"",day:null,flightNum:""};
+
+  // Ekran başlıklarını (ORIG, DEST, FLT, TIME, BLOCK vb.) gerçek ICAO kodu sanmayı önler
+  const HEADER_WORDS=new Set(["ORIG","DEST","FLT","NUM","DATE","TIME","FLIGHT","TIMES",
+    "BLOCK","SENSORS","PRINT","RETURN","SUMMARY","CURR","LOG","ACARS","FOB",
+    "OUT","OFF","ON","IN","FUEL","ETA","ATA","ETD","ATD"]);
+
+  // "ORIG-DEST" başlığını bul — gerçek meydan çifti genelde bundan hemen sonra gelir
+  const headerIdx=text.search(/ORIG\s*-?\s*DEST/);
+  const searchZone=headerIdx>=0 ? text.slice(headerIdx+9) : text;
+
+  function findAirportPair(zone){
+    const re=/\b([A-Z]{4})\s*-\s*([A-Z]{4})\b/g;
+    let m;
+    while((m=re.exec(zone))!==null){
+      const a=m[1], b=m[2];
+      if(HEADER_WORDS.has(a)||HEADER_WORDS.has(b)) continue; // başlık kelimesi, atla
+      return{from:a,to:b};
+    }
+    return null;
+  }
+
+  // Önce başlık sonrası bölgede ara, bulamazsa tüm metinde ara (header kelimeleri yine hariç)
+  const pair=findAirportPair(searchZone)||findAirportPair(text);
+  if(pair){ result.from=pair.from; result.to=pair.to; }
+
+  // FLT NUM-DATE: rakam-rakam (örn 9388-03) — DATE kısmı ayın günü
+  const fltMatch=text.match(/(\d{3,5})\s*-\s*(\d{1,2})(?!\d)/);
+  if(fltMatch){ result.flightNum=fltMatch[1]; result.day=parseInt(fltMatch[2],10); }
+
+  // OUT - HH:MM  (Block Off) — boşluk/tire varyasyonlarına toleranslı
+  const outMatch=text.match(/\bOUT\b\s*[-–—:]*\s*(\d{1,2})[:.]?(\d{2})/);
+  if(outMatch) result.depTime=`${outMatch[1].padStart(2,"0")}:${outMatch[2]}`;
+
+  // IN - HH:MM  (Block On) — "IN" tek başına kelime olarak eşleşsin (MIN, WIN vb. karışmasın)
+  const inMatch=text.match(/(?<![A-Z])\bIN\b\s*[-–—:]*\s*(\d{1,2})[:.]?(\d{2})/);
+  if(inMatch) result.arrTime=`${inMatch[1].padStart(2,"0")}:${inMatch[2]}`;
+
+  return result;
+}
+
+// ── CREW LOG TABLO PARSER ─────────────────────────────────────────────────────
+// "ACT AIRLINES CREW LOG" formatındaki çok satırlı tabloyu ayrıştırır:
+//   DD.MM.YYYY  Flight  ACREG  ACTYPE  CS  FLTNBR  DEP  HH:MM  ARR  HH:MM  BLOCK  CrewDetail
+// Sadece "Flight" satırları alınır; "Pass"/"Standby"/diğer satırlar (block=00:00
+// olan yolcu/deadhead kayıtları) otomatik olarak atlanır.
+function parseCrewLogText(raw){
+  const lines=(raw||"").split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
+  const flights=[];
+  const skipped=[];
+
+  // Ana desen: tarih + "Flight" + tescil + tip + C/S + FltNbr + Dep + saat + Arr + saat + Block + (Crew Detail)
+  // Son grup (crewDetail) satırın geri kalanını yakalar — örn. "MI.SL.UE.TIA"
+  const flightRe=/(\d{2})[.\/](\d{2})[.\/](\d{4})\s+FLIGHT\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+([A-Z]{3,4})\s+(\d{1,2}):(\d{2})\s+([A-Z]{3,4})\s+(\d{1,2}):(\d{2})\s+(\d{1,2}):(\d{2})\s*(.*)$/i;
+  // "Pass" veya block T. 00:00 olan satırları tanımak için
+  const passRe=/(\d{2})[.\/](\d{2})[.\/](\d{4})\s+(PASS|STANDBY|SBY|OFF|GRD)/i;
+
+  for(const line of lines){
+    const upper=line.toUpperCase();
+    const m=upper.match(flightRe);
+    if(m){
+      const[,dd,mm,yyyy,acReg,acType,cs,fltNbr,dep,depH,depM,arr,arrH,arrM,blkH,blkM,crewDetail]=m;
+      flights.push({
+        date:`${yyyy}-${mm}-${dd}`,
+        acType,reg:acReg,
+        from:toIcao(dep),to:toIcao(arr),
+        depTime:`${depH.padStart(2,"0")}:${depM}`,
+        arrTime:`${arrH.padStart(2,"0")}:${arrM}`,
+        flightNum:`${cs}${fltNbr}`,
+        remarks:(crewDetail||"").trim(),
+        ldgs:"1",
+      });
+      continue;
+    }
+    if(passRe.test(upper)){
+      skipped.push(line); // Pass/Standby satırları bilerek atlanıyor
+    }
+  }
+  return{flights,skipped,totalLines:lines.length};
+}
+
+function buildDateFromDay(day){
+  if(!day||day<1||day>31)return"";
+  const now=new Date();
+  const y=now.getFullYear();
+  const m=String(now.getMonth()+1).padStart(2,"0");
+  const d=String(day).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+
+const AC_TYPES=["B737","B747","B777","B787","A319","A320","A321","A330","A350","A380","OTHER"];
+
+const SK="logbook_v720";
+function loadData(){try{const s=localStorage.getItem(SK);return s?JSON.parse(s):{rows:[],pilot:"",license:"",lang:"tr",prevTotals:null};}catch{return{rows:[],pilot:"",license:"",lang:"tr",prevTotals:null};}}
+function saveData(d){try{localStorage.setItem(SK,JSON.stringify(d));}catch{}}
+// Eski versiyondan veri taşıma: tüm logbook_v* anahtarlarını tarar, en dolu/en güncel olanı bulur
+function findOtherVersionData(){
+  const candidates=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k||!k.startsWith("logbook_v")||k===SK) continue;
+    try{
+      const d=JSON.parse(localStorage.getItem(k));
+      if(d && Array.isArray(d.rows)) candidates.push({key:k,data:d,n:d.rows.length});
+    }catch{}
+  }
+  candidates.sort((a,b)=>b.n-a.n);
+  return candidates;
+}
+function emptyForm(){return{date:"",acType:"B747",reg:"",from:"",to:"",depTime:"",arrTime:"",
+  singleSE:"",singleME:"",multiPilot:"",
+  pilotTimeModes:["multiPilot"], // array — çoklu seçim
+  pilotFnMode:"pic",             // tekli seçim
+  picName:"",pic:"",coPilot:"",dual:"",ifr:"",
+  instructorName:"",instructorTime:"", // Kol.12: eğitmen adı + eğitmenlik süresi (HH:MM)
+  remarks:"",ldgs:"1"};}
+
+// Synthetic Training için ayrı, bağımsız kayıt formu — uçuş alanlarına dokunmaz
+function emptySynForm(){return{synDate:"",reg:"",instructorName:"",instructorTime:"",synType:"",synTime:""};}
+
+// ── TIME INPUT with HH:MM keyboard mask ───────────────────────────────────────
+function TimeInput({value,onChange,hasError,placeholder="HH:MM"}){
+  const[raw,setRaw]=useState(value||"");
+  useEffect(()=>{ setRaw(value||""); },[value]);
+
+  function handleChange(e){
+    let v=e.target.value.replace(/[^0-9:]/g,"");
+    // Auto-insert colon after 2 digits
+    if(v.length===2&&!v.includes(":")&&raw.length<2) v=v+":";
+    // Enforce HH:MM format length
+    if(v.length>5) v=v.slice(0,5);
+    setRaw(v);
+    // Emit only valid complete times
+    if(/^\d{2}:\d{2}$/.test(v)){
+      const[h,m]=v.split(":").map(Number);
+      if(h>=0&&h<=23&&m>=0&&m<=59) onChange(v);
+      else onChange("");
+    } else {
+      onChange("");
+    }
+  }
+  function handleBlur(){
+    if(raw&&!/^\d{2}:\d{2}$/.test(raw)) setRaw("");
+  }
+  return(
+    <input
+      className={`finp-time${hasError?" err":""}`}
+      value={raw}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      placeholder={placeholder}
+      maxLength={5}
+      inputMode="numeric"
+      autoComplete="off"
+    />
+  );
+}
+
+// ── APP ───────────────────────────────────────────────────────────────────────
+function App(){
+  const init=loadData();
+  const[rows,setRows]=useState(init.rows||[]);
+  const[pilot,setPilot]=useState(init.pilot||"");
+  const[license,setLicense]=useState(init.license||"");
+  const[lang,setLang]=useState(init.lang||"tr");
+  const[form,setForm]=useState(emptyForm());
+  const[synForm,setSynForm]=useState(emptySynForm());
+  const[synErrors,setSynErrors]=useState({});
+  const[errors,setErrors]=useState({});
+  const[toast,setToast]=useState(null);
+  const[editId,setEditId]=useState(null); // row being edited
+  const[fFrom,setFFrom]=useState("");
+  const[fTo,setFTo]=useState("");
+  const[af,setAf]=useState({from:"",to:""});
+  const[apPrompt,setApPrompt]=useState(null); // {ICAO:{name,lat,lon}} — listede olmayan meydanlar
+  const[apVer,setApVer]=useState(0);
+  // Önceki Sayfa Toplamı — bir kez elle girilir, kalıcı olarak saklanır (localStorage)
+  const[prevTotals,setPrevTotals]=useState(init.prevTotals||{
+    total:"",day:"",night:"",se:"",me:"",mp:"",pic:"",co:"",dual:"",ifr:"",ldgD:"",ldgN:"",synTime:"",
+    asOfDate:"2026-05-31" // PREVIOUS PAGE TOTAL'in geçerli olduğu kesim tarihi (Mayıs 2026 sonu)
+  });
+  const[ocrBusy,setOcrBusy]=useState(false);
+  const[ocrProgress,setOcrProgress]=useState(0);
+  const[ocrStage,setOcrStage]=useState("");
+  const[ocrError,setOcrError]=useState(null);
+  const[ocrPreview,setOcrPreview]=useState(null); // {imgUrl, parsed}
+  const[showRawOcr,setShowRawOcr]=useState(false);
+  const fileInputRef=useRef(null);
+  // Crew Log toplu içe aktarma
+  const[clBusy,setClBusy]=useState(false);
+  const[clStage,setClStage]=useState("");
+  const[clError,setClError]=useState(null);
+  const[clPreview,setClPreview]=useState(null); // {flights, skipped, rawText}
+  const[clSelected,setClSelected]=useState(new Set());
+  const clFileInputRef=useRef(null);
+  const dataFileInputRef=useRef(null);
+  const[showPasteImport,setShowPasteImport]=useState(null);
+  const[showExportText,setShowExportText]=useState(null);
+  const t=L[lang];
+
+  useEffect(()=>{saveData({rows,pilot,license,lang,prevTotals});},[rows,pilot,license,lang,prevTotals]);
+
+  // HTML lang attribute'ünü seçili arayüz diline göre günceller.
+  // Bu olmadan tarayıcı sayfayı hep "tr" sanıyor ve CSS text-transform:uppercase
+  // İngilizce metinlerdeki küçük "i" harfini de Türkçe kuralına göre noktalı
+  // büyük "İ" yapıyor (örn. "instructor" → "İNSTRUCTOR" olması gerekirken "INSTRUCTOR").
+  useEffect(()=>{
+    document.documentElement.lang = lang==="tr" ? "tr" : "en";
+  },[lang]);
+
+  // ── ACARS Fotoğraf OCR işleyici ──────────────────────────────────────────────
+  async function handleAcarsPhoto(e){
+    const file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    setOcrError(null);
+    setOcrBusy(true);
+    setOcrProgress(0);
+    // Önceki önizlemeyi bellekten bırak
+    if(ocrPreview&&ocrPreview.procUrl) URL.revokeObjectURL(ocrPreview.procUrl);
+    setOcrPreview(null);
+    try{
+      setOcrStage(lang==="tr"?"Görüntü hazırlanıyor...":"Preparing image...");
+      const{blob:procBlob,previewUrl:procUrl,origThumb:origImgUrl}=await preprocessImage(file);
+
+      setOcrStage(lang==="tr"?"Metin okunuyor...":"Reading text...");
+      const Tess=await loadTesseract(); // ilk kullanımda kütüphaneyi indir
+      const{data}=await Tess.recognize(procBlob,'eng',{
+        logger:m=>{
+          if(m.status==='recognizing text'&&m.progress!=null){
+            setOcrProgress(Math.round(m.progress*100));
+          }
+        },
+        // ACARS ekranları sabit genişlikli, sadece büyük harf+rakam+birkaç sembol içerir
+        // Whitelist ile Tesseract'ın karışabileceği karakter aralığını daraltıyoruz
+        tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-:./ ',
+        // PSM 6: metni tek bir düzgün blok olarak oku (ACARS ekranı gibi tablo/liste formatlarda iyi çalışır)
+        tessedit_pageseg_mode:'6',
+      });
+      const parsed=parseAcarsText(data.text||"");
+      setOcrPreview({imgUrl:origImgUrl,procUrl,parsed,rawText:data.text});
+      // Otomatik doldur — sadece dolu değerler
+      setForm(p=>({
+        ...p,
+        from:parsed.from||p.from,
+        to:parsed.to||p.to,
+        depTime:parsed.depTime||p.depTime,
+        arrTime:parsed.arrTime||p.arrTime,
+        date:parsed.day?buildDateFromDay(parsed.day):p.date,
+      }));
+      if(!parsed.from&&!parsed.to&&!parsed.depTime&&!parsed.arrTime){
+        setOcrError(lang==="tr"?"Veri okunamadı — lütfen elle girin veya net bir fotoğraf deneyin":"Could not read data — please enter manually or try a clearer photo");
+      } else {
+        showToast(lang==="tr"?"✓ ACARS verisi okundu":"✓ ACARS data read");
+      }
+    }catch(err){
+      setOcrError(lang==="tr"?"OCR hatası: "+err.message:"OCR error: "+err.message);
+    }finally{
+      setOcrBusy(false);
+      setOcrProgress(0);
+      setOcrStage("");
+      if(fileInputRef.current) fileInputRef.current.value="";
+    }
+  }
+  function clearOcrPreview(){
+    if(ocrPreview&&ocrPreview.procUrl) URL.revokeObjectURL(ocrPreview.procUrl);
+    setOcrPreview(null);
+    setOcrError(null);
+    setShowRawOcr(false);
+  }
+
+  // ── Crew Log dosyası (PDF veya fotoğraf) toplu içe aktarma ──────────────────
+  async function handleCrewLogFile(e){
+    const file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    setClError(null);
+    setClBusy(true);
+    setClPreview(null);
+    try{
+      let rawText="";
+      if(file.type==="application/pdf"||file.name.toLowerCase().endsWith(".pdf")){
+        setClStage(lang==="tr"?"PDF okunuyor...":"Reading PDF...");
+        rawText=await extractPdfText(file);
+        // PDF'te metin katmanı yoksa (taranmış görüntü) OCR'a düş
+        if(!rawText||rawText.replace(/\s/g,"").length<20){
+          setClStage(lang==="tr"?"PDF görüntü olarak okunuyor (OCR)...":"Reading PDF as image (OCR)...");
+          const Tess=await loadTesseract();
+          const{data}=await Tess.recognize(file,'eng',{});
+          rawText=data.text||"";
+        }
+      } else {
+        // Fotoğraf — ön işleme + OCR
+        setClStage(lang==="tr"?"Görüntü hazırlanıyor...":"Preparing image...");
+        const{blob:procBlob,previewUrl:_pu}=await preprocessImage(file);
+        URL.revokeObjectURL(_pu);
+        setClStage(lang==="tr"?"Metin okunuyor...":"Reading text...");
+        const Tess=await loadTesseract();
+        const{data}=await Tess.recognize(procBlob,'eng',{
+          tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-./:  ',
+        });
+        rawText=data.text||"";
+      }
+
+      const parsed=parseCrewLogText(rawText);
+      setClPreview({...parsed,rawText});
+      // Varsayılan: tüm bulunan uçuşlar seçili gelsin
+      setClSelected(new Set(parsed.flights.map((_,i)=>i)));
+
+      if(parsed.flights.length===0){
+        setClError(lang==="tr"
+          ?"Hiç uçuş satırı bulunamadı — dosya formatını kontrol edin veya 'Ham metni göster' ile inceleyin"
+          :"No flight rows found — check file format or inspect 'Show raw text'");
+      } else {
+        showToast(lang==="tr"?`✓ ${parsed.flights.length} uçuş bulundu`:`✓ ${parsed.flights.length} flights found`);
+      }
+    }catch(err){
+      setClError(lang==="tr"?"Okuma hatası: "+err.message:"Read error: "+err.message);
+    }finally{
+      setClBusy(false);
+      setClStage("");
+      if(clFileInputRef.current) clFileInputRef.current.value="";
+    }
+  }
+
+  function toggleClFlight(idx){
+    setClSelected(prev=>{
+      const next=new Set(prev);
+      if(next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  }
+
+  function importSelectedFlights(){
+    if(!clPreview||clSelected.size===0)return;
+    const toAdd=clPreview.flights
+      .filter((_,i)=>clSelected.has(i))
+      .map(f=>({
+        ...emptyForm(),
+        date:f.date,acType:f.acType,reg:f.reg,
+        from:f.from,to:f.to,depTime:f.depTime,arrTime:f.arrTime,
+        pilotTimeModes:["multiPilot"],pilotFnMode:"pic",
+        ldgs:f.ldgs||"1",
+        remarks:f.remarks||"", // Crew Detail sütunu → Notlar
+        id:Date.now()+Math.random()+Math.random(),
+      }))
+      .map(f=>{
+        // Uçuş süresi hesabına göre pilot süre/fonksiyon/IFR otomatik doldurulsun
+        const calc=calcFlight(f);
+        const totalStr=hhmm(calc.total), dayStr=hhmm(calc.day);
+        return{...f,multiPilot:totalStr,pic:totalStr,ifr:dayStr};
+      });
+    setRows(p=>[...p,...toAdd]);
+    showToast(lang==="tr"?`✓ ${toAdd.length} uçuş logbook'a eklendi`:`✓ ${toAdd.length} flights added`);
+    clearClPreview();
+  }
+
+  function clearClPreview(){
+    setClPreview(null);
+    setClSelected(new Set());
+    setClError(null);
+  }
+
+  const computed=useMemo(()=>{
+    const withCalc=rows.map(r=>({...r,...calcFlight(r)}));
+    // Tarihe göre kronolojik sıralama — girilme sırasından bağımsız.
+    // Geçmişe dönük eklenen bir uçuş, tablo içinde doğru tarihsel konumuna otomatik yerleşir.
+    // Aynı tarihli satırlar arasında Block Off saatine göre ikincil sıralama yapılır.
+    // Tarihi olmayan (boş) satırlar en sona alınır.
+    return withCalc.slice().sort((a,b)=>{
+      const da=a.date||"9999-99-99", db=b.date||"9999-99-99";
+      if(da!==db) return da<db?-1:1;
+      const ta=a.depTime||"99:99", tb=b.depTime||"99:99";
+      if(ta!==tb) return ta<tb?-1:1;
+      return 0;
+    });
+  },[rows,apVer]);
+  const filtered=useMemo(()=>{
+    if(!af.from&&!af.to)return computed;
+    return computed.filter(r=>(!af.from||r.date>=af.from)&&(!af.to||r.date<=af.to));
+  },[computed,af]);
+
+  // Daha önce girilmiş eğitmen isimlerini toplar — Synthetic Training formunda seçim (datalist) için
+  const instructorNames=useMemo(()=>{
+    const set=new Set();
+    rows.forEach(r=>{ if(r.instructorName) set.add(r.instructorName); });
+    return Array.from(set).sort();
+  },[rows]);
+
+  // Önceki Sayfa Toplamı (elle girilen, dakika cinsine çevrilmiş) — ana hesaplama girdisi (offset).
+  // Bir kere girilir; bundan sonra TÜM uçuşlar (tarihi ne olursa olsun, önce veya sonra girilmiş
+  // fark etmez) bu değere eklenir. Kesim tarihine göre hariç tutma YAPILMAZ — basit toplama.
+  const prevMin=useMemo(()=>({
+    total:pt(prevTotals.total)||0, day:pt(prevTotals.day)||0, night:pt(prevTotals.night)||0,
+    se:pt(prevTotals.se)||0, me:pt(prevTotals.me)||0, mp:pt(prevTotals.mp)||0,
+    pic:pt(prevTotals.pic)||0, co:pt(prevTotals.co)||0, dual:pt(prevTotals.dual)||0,
+    ifr:pt(prevTotals.ifr)||0, synTime:pt(prevTotals.synTime)||0,
+    instructorTime:pt(prevTotals.instructorTime)||0,
+    ldgD:parseInt(prevTotals.ldgD)||0, ldgN:parseInt(prevTotals.ldgN)||0,
+  }),[prevTotals]);
+
+  // Referans tarihi (PREVIOUS PAGE TOTAL'in elle girildiği tarih).
+  const refDate=prevTotals.asOfDate||"";
+
+  // PAGE TOTAL: sadece REFERANS TARİHİNDEN SONRAKİ uçuşların toplamı.
+  // Referans tarihi ve öncesindeki uçuşlar zaten elle girilen PREVIOUS PAGE TOTAL'in
+  // içinde sayılı olduğundan, burada TEKRAR toplanmaz — aksi halde çift sayım olur.
+  const sumRows=(list)=>list.reduce((a,r)=>({
+      total:a.total+r.total,night:a.night+r.night,day:a.day+r.day,
+      ldgD:a.ldgD+r.ldgDay,ldgN:a.ldgN+r.ldgNight,
+      se:a.se+(pt(r.singleSE)||0),me:a.me+(pt(r.singleME)||0),
+      mp:a.mp+(pt(r.multiPilot)||0),
+      pic:a.pic+(pt(r.pic)||0),co:a.co+(pt(r.coPilot)||0),
+      dual:a.dual+(pt(r.dual)||0),ifr:a.ifr+(pt(r.ifr)||0),
+      synTime:a.synTime+(pt(r.synTime)||0),
+      instructorTime:a.instructorTime+(pt(r.instructorTime)||0),
+    }),{total:0,night:0,day:0,ldgD:0,ldgN:0,se:0,me:0,mp:0,pic:0,co:0,dual:0,ifr:0,synTime:0,instructorTime:0});
+
+  // Rapor penceresi tamamen referans tarihinden ÖNCE ise (geriye dönük rapor) PREVIOUS TOTAL eklenmez.
+  const isFullyBackdatedReport=!!(refDate && af.to && af.to<=refDate);
+
+  // PAGE TOTAL: seçili tarih aralığındaki uçuşlar (referans tarihi ve öncesi zaten
+  // PREVIOUS TOTAL'e dahil olduğundan sayılmaz; geriye dönük raporda ise hepsi sayılır).
+  const tots=useMemo(()=>{
+    const countable=(refDate&&!isFullyBackdatedReport)
+      ? filtered.filter(r=>!r.date || r.date>refDate)
+      : filtered;
+    return sumRows(countable);
+  },[filtered,refDate,isFullyBackdatedReport]);
+
+  // TOTAL: PREVIOUS TOTAL + referans tarihinden bitiş tarihine kadar TÜM uçuşlar
+  // (başlangıç tarihi filtresi dikkate alınmaz; böylece aralık dışında kalan aylar da toplanır).
+  const cumulative=useMemo(()=>{
+    const base=computed.filter(r=>{
+      if(af.to && r.date && r.date>af.to) return false;
+      if(refDate && !isFullyBackdatedReport && r.date && r.date<=refDate) return false;
+      return true;
+    });
+    return sumRows(base);
+  },[computed,af.to,refDate,isFullyBackdatedReport]);
+
+  const effectivePrevMin=isFullyBackdatedReport
+    ? {total:0,day:0,night:0,se:0,me:0,mp:0,pic:0,co:0,dual:0,ifr:0,synTime:0,instructorTime:0,ldgD:0,ldgN:0}
+    : prevMin;
+
+  const grandTots=useMemo(()=>({
+    total:effectivePrevMin.total+cumulative.total, day:effectivePrevMin.day+cumulative.day, night:effectivePrevMin.night+cumulative.night,
+    se:effectivePrevMin.se+cumulative.se, me:effectivePrevMin.me+cumulative.me, mp:effectivePrevMin.mp+cumulative.mp,
+    pic:effectivePrevMin.pic+cumulative.pic, co:effectivePrevMin.co+cumulative.co, dual:effectivePrevMin.dual+cumulative.dual,
+    ifr:effectivePrevMin.ifr+cumulative.ifr, synTime:effectivePrevMin.synTime+cumulative.synTime,
+    instructorTime:effectivePrevMin.instructorTime+cumulative.instructorTime,
+    ldgD:effectivePrevMin.ldgD+cumulative.ldgD, ldgN:effectivePrevMin.ldgN+cumulative.ldgN,
+  }),[effectivePrevMin,cumulative]);
+
+  // Mevcut TOTAL (grandTots) değerini yeni dönemin PREVIOUS PAGE TOTAL'i yapar.
+  // Böylece her yeni sayfada elle giriş tekrarlanmaz — bir önceki TOTAL otomatik devrolur.
+  function copyTotalToPrevious(){
+    const confirmMsg=lang==="tr"
+      ?`Mevcut TOTAL (${hhmm(grandTots.total)}) yeni PREVIOUS PAGE TOTAL olarak kaydedilsin mi?\n\nBu işlem geri alınamaz — yapmadan önce mevcut logbook sayfanızı yazdırdığınızdan/kaydettiğinizden emin olun.`
+      :`Save current TOTAL (${hhmm(grandTots.total)}) as the new PREVIOUS PAGE TOTAL?\n\nThis cannot be undone — make sure you've printed/saved the current logbook page first.`;
+    if(!window.confirm(confirmMsg)) return;
+    // Yeni kesim tarihi: logbook'taki en son (en büyük) uçuş tarihi — yoksa bugün
+    const latestDate=rows.reduce((max,r)=>(r.date&&r.date>max?r.date:max),"");
+    const newAsOf=latestDate||new Date().toISOString().slice(0,10);
+    setPrevTotals({
+      total:hhmm(grandTots.total), day:hhmm(grandTots.day), night:hhmm(grandTots.night),
+      se:hhmm(grandTots.se), me:hhmm(grandTots.me), mp:hhmm(grandTots.mp),
+      pic:hhmm(grandTots.pic), co:hhmm(grandTots.co), dual:hhmm(grandTots.dual),
+      ifr:hhmm(grandTots.ifr), synTime:grandTots.synTime>0?hhmm(grandTots.synTime):"",
+      instructorTime:grandTots.instructorTime>0?hhmm(grandTots.instructorTime):"",
+      ldgD:String(grandTots.ldgD||""), ldgN:String(grandTots.ldgN||""),
+      asOfDate:newAsOf,
+    });
+    showToast(lang==="tr"?"✓ Yeni sayfa için PREVIOUS PAGE TOTAL güncellendi":"✓ PREVIOUS PAGE TOTAL updated for new page");
+  }
+
+  function sf(k,v){setForm(p=>({...p,[k]:v}));setErrors(p=>({...p,[k]:null}));}
+
+  function validate(){
+    const e={};
+    if(!form.date)e.date=t.req;
+    if(!form.reg)e.reg=t.req;
+    if(!form.from||form.from.length<3)e.from=t.min3;
+    if(!form.to||form.to.length<3)e.to=t.min3;
+    if(!form.depTime)e.depTime=t.req;
+    if(!form.arrTime)e.arrTime=t.req;
+    setErrors(e);return !Object.keys(e).length;
+  }
+
+  function addOrUpdate(skipApCheck){
+    if(!validate())return;
+    if(skipApCheck!==true){
+      const miss=missingAirports({from:form.from,to:form.to});
+      if(miss.length){
+        const init={};miss.forEach(c=>{init[c]={name:"",coord:""};});
+        setApPrompt(init);return;
+      }
+    }
+    const calc=calcFlight({...form,from:form.from.toUpperCase(),to:form.to.toUpperCase()});
+    const totalStr=hhmm(calc.total);
+    const dayStr=hhmm(calc.day);
+    // Çoklu seçim: her seçilen pilot time field = total
+    const modes=Array.isArray(form.pilotTimeModes)?form.pilotTimeModes:["multiPilot"];
+    const ptUpdate={singleSE:"",singleME:"",multiPilot:""};
+    modes.forEach(k=>{ if(k in ptUpdate) ptUpdate[k]=totalStr; });
+    // Tekli seçim: pilot fonksiyon = total
+    const pfUpdate={pic:"",coPilot:"",dual:""};
+    const fnMode=form.pilotFnMode||"pic";
+    if(fnMode in pfUpdate) pfUpdate[fnMode]=totalStr;
+    // IFR = gündüz süresi
+    const entry={...form,
+      from:form.from.toUpperCase(),to:form.to.toUpperCase(),
+      acType:form.acType.toUpperCase(),reg:form.reg.toUpperCase(),
+      ...ptUpdate,...pfUpdate,ifr:dayStr,
+      // Bu bir uçuş kaydı — synthetic alanları boş kalır
+      synDate:"",synType:"",synTime:""};
+    if(editId){
+      setRows(p=>p.map(r=>r.id===editId?{...entry,id:editId}:r));
+      setEditId(null);
+      showToast(t.updateOk);
+    } else {
+      setRows(p=>[...p,{...entry,id:Date.now()+Math.random()}]);
+      showToast(t.addOk);
+    }
+    setForm({...emptyForm(),acType:form.acType,reg:form.reg,
+      pilotTimeModes:form.pilotTimeModes,pilotFnMode:form.pilotFnMode});
+  }
+
+  // ── Synthetic Training — bağımsız kayıt ──────────────────────────────────────
+  // Sadece Instructor + Synthetic (Tarih/Tip/Süre) sütunlarını doldurur.
+  // Multi Pilot, Total, Landing, Op.Condition, IFR, PIC gibi uçuş alanlarına
+  // hiç dokunmaz — bu alanlar bu kayıt için boş kalır.
+  function validateSyn(){
+    const e={};
+    if(!synForm.synDate)e.synDate=t.req;
+    if(!synForm.synType)e.synType=t.req;
+    if(!synForm.synTime)e.synTime=t.req;
+    setSynErrors(e);return !Object.keys(e).length;
+  }
+  function addSyntheticEntry(){
+    if(!validateSyn())return;
+    const entry={
+      ...emptyForm(), // uçuş alanları tamamen boş/varsayılan
+      date:synForm.synDate, // tabloda tarih sütununda görünsün diye
+      acType:"",reg:synForm.reg?synForm.reg.toUpperCase():"",from:"",to:"",depTime:"",arrTime:"",
+      pilotTimeModes:[],pilotFnMode:"",
+      picName:"",pic:"",coPilot:"",dual:"",ifr:"",
+      instructorName:synForm.instructorName,instructorTime:synForm.instructorTime,
+      synDate:synForm.synDate,synType:synForm.synType,synTime:synForm.synTime,
+      // Eğitmen adı Notlar (Kol.14 Remarks) sütununda da görünsün
+      remarks:synForm.instructorName?`Instructor: ${synForm.instructorName}`:"",
+      ldgs:"",
+      isSynthetic:true, // satırın synthetic-only kayıt olduğunu işaretler
+      id:Date.now()+Math.random(),
+    };
+    setRows(p=>[...p,entry]);
+    setSynForm(emptySynForm());
+    showToast(lang==="tr"?"✓ Synthetic training eklendi":"✓ Synthetic training added");
+  }
+
+  // ── VERSİYONLAR ARASI VERİ TAŞIMA ──────────────────────────────────────────
+  function exportData(){
+    const payload={rows,pilot,license,lang,prevTotals,exportedFrom:SK,exportedAt:new Date().toISOString()};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download=`${SK}_export_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(lang==="tr"?"✓ Dışa aktarıldı":"✓ Exported");
+  }
+  function applyImportedData(d){
+    if(!d||!Array.isArray(d.rows)){
+      showToast(lang==="tr"?"⚠ Geçersiz dosya":"⚠ Invalid file");
+      return;
+    }
+    setRows(d.rows||[]);
+    if(d.pilot!==undefined) setPilot(d.pilot);
+    if(d.license!==undefined) setLicense(d.license);
+    if(d.prevTotals) setPrevTotals(d.prevTotals);
+    showToast(lang==="tr"?`✓ ${d.rows.length} kayıt içe aktarıldı`:`✓ ${d.rows.length} entries imported`);
+  }
+  function importFromFile(e){
+    const file=e.target.files&&e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{ applyImportedData(JSON.parse(reader.result)); }
+      catch{ showToast(lang==="tr"?"⚠ Dosya okunamadı":"⚠ Could not read file"); }
+    };
+    reader.readAsText(file);
+    e.target.value="";
+  }
+  function importFromOtherVersion(){
+    const candidates=findOtherVersionData();
+    if(!candidates.length){
+      showToast(lang==="tr"?"⚠ Bu tarayıcıda başka versiyon bulunamadı":"⚠ No other version found in this browser");
+      return;
+    }
+    const best=candidates[0];
+    if(!window.confirm(
+      lang==="tr"
+        ?`"${best.key}" içinde ${best.n} kayıt bulundu. Mevcut verinizin üzerine yazılacak. Devam edilsin mi?`
+        :`Found ${best.n} entries in "${best.key}". This will overwrite your current data. Continue?`
+    )) return;
+    applyImportedData(best.data);
+  }
+
+  function startEdit(r){
+    setForm({...r});
+    setEditId(r.id);
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function cancelEdit(){setEditId(null);setForm(emptyForm());}
+  function removeRow(id){
+    if(editId===id){setEditId(null);setForm(emptyForm());}
+    setRows(p=>p.filter(r=>r.id!==id));
+    showToast(t.delOk);
+  }
+  function showToast(m){setToast(m);setTimeout(()=>setToast(null),2000);}
+
+  const depInfo=AP[form.from?.toUpperCase()];
+  const arrInfo=AP[form.to?.toUpperCase()];
+  const prev=useMemo(()=>calcFlight({...form,from:form.from?.toUpperCase(),to:form.to?.toUpperCase()}),[form]);
+
+  return(
+    <div style={{minHeight:"100vh",background:"#f0f2f5",fontFamily:F,paddingTop:"env(safe-area-inset-top)"}}>
+
+      {/* Toast */}
+      {toast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top)+12px)",left:"50%",transform:"translateX(-50%)",
+        background:"#1a3a1a",color:"#5ecfa0",padding:"9px 20px",borderRadius:8,
+        fontSize:13,zIndex:1000,whiteSpace:"nowrap",boxShadow:"0 4px 20px rgba(0,0,0,.2)",
+        border:"1px solid #3a6a3a"}}>{toast}</div>}
+
+      {/* REFERANS PREVIOUS TOTAL — inline tek satır logbook formatında giriş (modal DEĞİL) */}
+
+      {/* ── HEADER ── */}
+      <div className="no-print" style={{background:"linear-gradient(90deg,#1a2a3a,#1e3448,#1a2a3a)",
+        borderBottom:"1px solid #2a4060",padding:"11px 16px",
+        paddingLeft:"calc(16px + env(safe-area-inset-left))",
+        paddingRight:"calc(16px + env(safe-area-inset-right))",
+        display:"flex",alignItems:"center",gap:12}}>
+        <svg width="26" height="26" viewBox="0 0 38 38" fill="none">
+          <circle cx="19" cy="19" r="17" stroke="#4a9eff" strokeWidth="1.5"/>
+          <polygon points="19,5 21,19 19,17 17,19" fill="#4a9eff"/>
+          <polygon points="19,33 21,19 19,21 17,19" fill="#3d5a7a"/>
+          <polygon points="5,19 19,17 17,19 19,21" fill="#3d5a7a"/>
+          <polygon points="33,19 19,17 21,19 19,21" fill="#4a9eff"/>
+          <circle cx="19" cy="19" r="2" fill="#4a9eff"/>
+        </svg>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:8,letterSpacing:3,color:"#4a9eff",textTransform:"uppercase"}}>{t.appSub}</div>
+          <div style={{fontSize:15,fontWeight:700,color:"#e8f4ff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.appTitle}</div>
+        </div>
+        <div style={{display:"flex",gap:10,alignItems:"flex-end",flexShrink:0,flexWrap:"wrap"}}>
+          <HdrInput label={t.pilot} value={pilot} onChange={e=>setPilot(e.target.value)} ph="Ad Soyad" w={110}/>
+          <HdrInput label={t.lic} value={license} onChange={e=>setLicense(e.target.value)} ph="TR.FCL.XXX" w={95}/>
+          <div style={{display:"flex",border:"1px solid #2a4060",borderRadius:6,overflow:"hidden"}}>
+            {["tr","en"].map(l=>(
+              <button key={l} onClick={()=>setLang(l)}
+                style={{background:lang===l?"#1a3a6e":"transparent",border:"none",
+                  color:lang===l?"#e8f4ff":"#6a8aaa",padding:"5px 9px",cursor:"pointer",
+                  fontSize:10,fontWeight:lang===l?700:400,fontFamily:F}}>
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:4}}>
+            <button onClick={importFromOtherVersion} title={lang==="tr"?"Bu tarayıcıdaki eski versiyondan otomatik al":"Auto-import from an older version in this browser"}
+              style={{background:"transparent",border:"1px solid #3a6aaa",color:"#a0c8ff",
+                padding:"5px 9px",borderRadius:6,cursor:"pointer",fontSize:10,fontWeight:600,fontFamily:F,whiteSpace:"nowrap"}}>
+              ↻ {lang==="tr"?"Eski Versiyondan Al":"Import Old Version"}
+            </button>
+            <button onClick={()=>dataFileInputRef.current&&dataFileInputRef.current.click()} title={lang==="tr"?"Dışa aktarılan JSON dosyasından içe aktar":"Import from an exported JSON file"}
+              style={{background:"transparent",border:"1px solid #3a6aaa",color:"#a0c8ff",
+                padding:"5px 9px",borderRadius:6,cursor:"pointer",fontSize:10,fontWeight:600,fontFamily:F,whiteSpace:"nowrap"}}>
+              📂 {lang==="tr"?"Dosyadan Al":"Import File"}
+            </button>
+            <button onClick={exportData} title={lang==="tr"?"Mevcut verileri JSON dosyası olarak indir":"Download current data as a JSON file"}
+              style={{background:"transparent",border:"1px solid #3a6aaa",color:"#a0c8ff",
+                padding:"5px 9px",borderRadius:6,cursor:"pointer",fontSize:10,fontWeight:600,fontFamily:F,whiteSpace:"nowrap"}}>
+              ⬇ {lang==="tr"?"Dışa Aktar":"Export"}
+            </button>
+            <input ref={dataFileInputRef} type="file" accept="application/json,.json" onChange={importFromFile}
+              style={{display:"none"}}/>
+            <button onClick={()=>setShowExportText(JSON.stringify({rows,pilot,license,lang,prevTotals,exportedFrom:SK,exportedAt:new Date().toISOString()},null,2))}
+              title={lang==="tr"?"Verileri metin olarak göster, kopyala":"Show data as text to copy"}
+              style={{background:"transparent",border:"1px solid #3a6aaa",color:"#a0c8ff",
+                padding:"5px 9px",borderRadius:6,cursor:"pointer",fontSize:10,fontWeight:600,fontFamily:F,whiteSpace:"nowrap"}}>
+              📋 {lang==="tr"?"Metin Olarak Göster":"Show as Text"}
+            </button>
+            <button onClick={()=>setShowPasteImport("")} title={lang==="tr"?"Kopyaladığınız JSON metnini yapıştırarak içe aktarın":"Paste a copied JSON text to import"}
+              style={{background:"transparent",border:"1px solid #3a6aaa",color:"#a0c8ff",
+                padding:"5px 9px",borderRadius:6,cursor:"pointer",fontSize:10,fontWeight:600,fontFamily:F,whiteSpace:"nowrap"}}>
+              📝 {lang==="tr"?"Metni Yapıştır":"Paste Text"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showExportText&&(
+        <div className="no-print" style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",borderRadius:10,padding:16,maxWidth:680,width:"100%",maxHeight:"85vh",display:"flex",flexDirection:"column"}}>
+            <div style={{fontWeight:700,marginBottom:8,color:"#1a2a3a"}}>{lang==="tr"?"Tüm metni seçip kopyalayın:":"Select all and copy this text:"}</div>
+            <textarea readOnly value={showExportText} onFocus={e=>e.target.select()}
+              style={{flex:1,minHeight:300,fontFamily:"monospace",fontSize:11,padding:8,border:"1.5px solid #c8d4e0",borderRadius:6,resize:"none"}}/>
+            <div style={{display:"flex",gap:8,marginTop:10,justifyContent:"flex-end"}}>
+              <button onClick={async()=>{try{await navigator.clipboard.writeText(showExportText);showToast(lang==="tr"?"✓ Panoya kopyalandı":"✓ Copied");}catch{showToast(lang==="tr"?"⚠ Elle seçip kopyalayın":"⚠ Select and copy manually");}}}
+                style={{background:"#1a3a6e",border:"none",color:"#fff",padding:"8px 16px",borderRadius:6,cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:F}}>
+                {lang==="tr"?"Panoya Kopyala":"Copy to Clipboard"}</button>
+              <button onClick={()=>setShowExportText(null)}
+                style={{background:"#eef1f5",border:"1px solid #c8d4e0",color:"#1a2a3a",padding:"8px 16px",borderRadius:6,cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:F}}>
+                {lang==="tr"?"Kapat":"Close"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPasteImport!==null&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:2000,
+          display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",borderRadius:10,padding:16,maxWidth:680,width:"100%",maxHeight:"85vh",display:"flex",flexDirection:"column"}}>
+            <div style={{fontWeight:700,marginBottom:8,color:"#1a2a3a"}}>
+              {lang==="tr"?"Kopyaladığınız JSON verisini buraya yapıştırın:":"Paste the copied JSON data here:"}
+            </div>
+            <textarea value={showPasteImport} onChange={e=>setShowPasteImport(e.target.value)}
+              placeholder={lang==="tr"?"{ ... }":"{ ... }"}
+              style={{flex:1,minHeight:300,fontFamily:"monospace",fontSize:11,padding:8,
+                border:"1.5px solid #c8d4e0",borderRadius:6,resize:"none"}}/>
+            <div style={{display:"flex",gap:8,marginTop:10,justifyContent:"flex-end"}}>
+              <button onClick={()=>{
+                  try{
+                    const d=JSON.parse(showPasteImport);
+                    applyImportedData(d);
+                    setShowPasteImport(null);
+                  }catch{
+                    showToast(lang==="tr"?"⚠ Geçersiz JSON metni":"⚠ Invalid JSON text");
+                  }
+                }}
+                style={{background:"#1a3a6e",border:"none",color:"#fff",padding:"8px 16px",
+                  borderRadius:6,cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:F}}>
+                {lang==="tr"?"İçe Aktar":"Import"}
+              </button>
+              <button onClick={()=>setShowPasteImport(null)}
+                style={{background:"#eef1f5",border:"1px solid #c8d4e0",color:"#1a2a3a",padding:"8px 16px",
+                  borderRadius:6,cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:F}}>
+                {lang==="tr"?"İptal":"Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {apPrompt&&(()=>{
+        const codes=Object.keys(apPrompt);
+        const valid=codes.every(c=>parseCoord(apPrompt[c].coord)!==null);
+        const upd=(c,k,v)=>setApPrompt(p=>({...p,[c]:{...p[c],[k]:v}}));
+        return(
+        <div className="no-print" style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div style={{background:"#fff",borderRadius:10,padding:16,maxWidth:520,width:"100%",maxHeight:"90vh",overflowY:"auto"}}>
+            <div style={{fontWeight:700,color:"#1a2a3a",marginBottom:6}}>
+              {lang==="tr"?"Listede olmayan meydan":"Airport not in database"}
+            </div>
+            <div style={{fontSize:12,color:"#4a6080",marginBottom:12}}>
+              {lang==="tr"
+                ?"Gece/gündüz hesabı için koordinat gerekiyor. Bir kez girilir, sonraki uçuşlarda hatırlanır. Format: N4727.7E01916.6 (enlem DDMM.m, boylam DDDMM.m)."
+                :"Coordinates are needed for night/day calculation. Entered once, remembered afterwards. Format: N4727.7E01916.6 (lat DDMM.m, lon DDDMM.m)."}
+            </div>
+            {codes.map(c=>(
+              <div key={c} style={{border:"1px solid #d0d8e4",borderRadius:8,padding:10,marginBottom:10}}>
+                <div style={{fontWeight:700,color:"#1a3a6e",marginBottom:6}}>{c}</div>
+                <input className="finp" style={{height:40,marginBottom:6}} placeholder={lang==="tr"?"Meydan adı (örn. Kars)":"Airport name"}
+                  value={apPrompt[c].name} onChange={e=>upd(c,"name",e.target.value)}/>
+                <input className="finp" style={{height:40,fontFamily:"monospace",letterSpacing:1}} autoCapitalize="characters" autoCorrect="off" spellCheck="false"
+                  placeholder="N4727.7E01916.6"
+                  value={apPrompt[c].coord} onChange={e=>upd(c,"coord",e.target.value.toUpperCase())}/>
+                {apPrompt[c].coord&&(()=>{const pc=parseCoord(apPrompt[c].coord);
+                  return <div style={{fontSize:10,marginTop:4,color:pc?"#2a6a3a":"#a03030"}}>
+                    {pc?`${pc.lat.toFixed(4)}, ${pc.lon.toFixed(4)}`:(lang==="tr"?"Format: N4727.7E01916.6 (N/S + DDMM.m, E/W + DDDMM.m)":"Format: N4727.7E01916.6 (N/S + DDMM.m, E/W + DDDMM.m)")}
+                  </div>;})()}
+              </div>
+            ))}
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+              <button onClick={()=>setApPrompt(null)}
+                style={{background:"#eef1f5",border:"1px solid #c8d4e0",color:"#1a2a3a",padding:"8px 16px",borderRadius:6,cursor:"pointer",fontFamily:F}}>
+                {lang==="tr"?"İptal":"Cancel"}
+              </button>
+              <button disabled={!valid}
+                onClick={()=>{
+                  const custom=loadCustomAirports();
+                  codes.forEach(c=>{const a=apPrompt[c];const pc=parseCoord(a.coord);custom[c]={lat:pc.lat,lon:pc.lon,name:a.name||c};});
+                  saveCustomAirports(custom);
+                  setApPrompt(null);setApVer(v=>v+1);
+                  setTimeout(()=>addOrUpdate(true),0);
+                }}
+                style={{background:valid?"#1a3a6e":"#9aacbe",border:"none",color:"#fff",padding:"8px 16px",borderRadius:6,cursor:valid?"pointer":"not-allowed",fontWeight:600,fontFamily:F}}>
+                {lang==="tr"?"Kaydet ve Ekle":"Save & Add"}
+              </button>
+            </div>
+          </div>
+        </div>);
+      })()}
+
+      {/* ── FORM ── */}
+      <div className="no-print" style={{background:"#e8ecf0",borderBottom:"1px solid #c8d4e0",
+        padding:"16px",paddingLeft:"calc(16px + env(safe-area-inset-left))",
+        paddingRight:"calc(16px + env(safe-area-inset-right))"}}>
+
+        {editId&&(
+          <div style={{background:"#fff8e8",border:"1.5px solid #f5a820",borderRadius:8,
+            padding:"8px 14px",marginBottom:12,fontSize:12,color:"#7a5a00",fontWeight:600}}>
+            ✏ {lang==="tr"?"Kayıt düzenleniyor — değişiklikleri kaydetmek için Güncelle'ye basın":"Editing entry — press Update to save changes"}
+          </div>
+        )}
+
+        <div style={{fontSize:11,color:"#1a3a6e",letterSpacing:3,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>{t.secForm}</div>
+
+        {/* ── REFERANS PREVIOUS TOTAL — tek satır, logbook sütun sırasına uygun inline giriş ── */}
+        <div className="fcard" style={{marginBottom:16,borderColor:"#d4a72c",background:"linear-gradient(180deg,#fffaf0,#fdf3d8)"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}>
+            <div style={{fontSize:9,color:"#8a6a10",letterSpacing:2,textTransform:"uppercase",fontWeight:700}}>
+              ⭐ {t.prevTotal}
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <label className="flabel" style={{fontSize:8,marginBottom:0,color:"#8a6a10"}}>
+                {lang==="tr"?"Referans Tarihi":"Reference Date"}
+              </label>
+              <input type="date" value={prevTotals.asOfDate||""}
+                onChange={e=>setPrevTotals(p=>({...p,asOfDate:e.target.value}))}
+                className="finp" style={{height:32,width:140,fontSize:12}}/>
+              <button onClick={()=>{
+                  setPrevTotals({total:"",day:"",night:"",se:"",me:"",mp:"",pic:"",co:"",dual:"",ifr:"",ldgD:"",ldgN:"",synTime:"",instructorTime:"",asOfDate:prevTotals.asOfDate});
+                  showToast(lang==="tr"?"Sıfırlandı":"Reset");
+                }}
+                style={{background:"none",border:"1px solid #e0a0a0",color:"#8a1a1a",
+                  padding:"4px 10px",borderRadius:5,cursor:"pointer",fontSize:10,fontFamily:F}}>
+                {lang==="tr"?"Sıfırla":"Reset"}
+              </button>
+            </div>
+          </div>
+          <div style={{fontSize:9,color:"#9a7a20",marginBottom:10}}>
+            {lang==="tr"
+              ?"Bu değerleri sadece bir kez, elle taşınan eski logbook sayfanızdan girin. Girdikten sonra logbook'a eklenen tüm uçuşlar otomatik olarak bu toplamlara ilave edilir."
+              :"Enter these values once, manually, from your carried-over old logbook page. All flights added afterward are automatically added to these totals."}
+          </div>
+          {/* Tek satır — logbook tablosundaki sütun sırasına uygun */}
+          <div style={{overflowX:"auto"}}>
+            <div style={{display:"flex",gap:6,alignItems:"flex-end",minWidth:920}}>
+              {[
+                ["se","SP-SE"],["me","SP-ME"],["mp",lang==="tr"?"Çok-P":"Multi-P"],
+                ["total",lang==="tr"?"Toplam":"Total"],
+                ["day",lang==="tr"?"Gündüz":"Day"],["night",lang==="tr"?"Gece":"Night"],
+                ["ifr","IFR"],
+                ["pic","PIC"],["co",lang==="tr"?"Yrd.P":"Co-P"],["dual","Dual"],
+                ["instructorTime",lang==="tr"?"Instructor":"Instructor"],
+                ["synTime",lang==="tr"?"Synthetic":"Synthetic"],
+              ].map(([k,lbl])=>(
+                <div key={k} style={{flex:"0 0 auto"}}>
+                  <label className="flabel" style={{fontSize:7,marginBottom:2,color:"#8a6a10"}}>{lbl}</label>
+                  <input type="text" placeholder="00:00" value={prevTotals[k]||""}
+                    onChange={e=>{
+                      let v=e.target.value.replace(/[^0-9:]/g,"");
+                      const parts=v.split(":");
+                      if(parts.length>2) v=parts[0]+":"+parts.slice(1).join("");
+                      const[hPart,mPart]=v.split(":");
+                      if(mPart!==undefined && mPart.length>2) v=hPart+":"+mPart.slice(0,2);
+                      setPrevTotals(p=>({...p,[k]:v}));
+                    }}
+                    onBlur={e=>{
+                      const v=prevTotals[k]||"";
+                      if(v && !v.includes(":")) setPrevTotals(p=>({...p,[k]:v+":00"}));
+                      else if(v.endsWith(":")) setPrevTotals(p=>({...p,[k]:v+"00"}));
+                    }}
+                    className="finp finp-sm" style={{height:34,width:76,textAlign:"center"}}/>
+                </div>
+              ))}
+              <div style={{flex:"0 0 auto"}}>
+                <label className="flabel" style={{fontSize:7,marginBottom:2,color:"#8a6a10"}}>{lang==="tr"?"İniş-G":"Ldg-D"}</label>
+                <input type="number" min="0" value={prevTotals.ldgD||""}
+                  onChange={e=>setPrevTotals(p=>({...p,ldgD:e.target.value}))}
+                  className="finp finp-sm" style={{height:34,width:56,textAlign:"center"}}/>
+              </div>
+              <div style={{flex:"0 0 auto"}}>
+                <label className="flabel" style={{fontSize:7,marginBottom:2,color:"#8a6a10"}}>{lang==="tr"?"İniş-N":"Ldg-N"}</label>
+                <input type="number" min="0" value={prevTotals.ldgN||""}
+                  onChange={e=>setPrevTotals(p=>({...p,ldgN:e.target.value}))}
+                  className="finp finp-sm" style={{height:34,width:56,textAlign:"center"}}/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── ACARS Fotoğraf OCR ── */}
+        <div className="fcard" style={{marginBottom:12,borderColor:"#a8c8e0",background:"#f4faff"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <div style={{fontSize:9,color:"#1a5a9a",letterSpacing:2,textTransform:"uppercase",fontWeight:700}}>
+              📷 {lang==="tr"?"ACARS Ekran Fotoğrafı":"ACARS Screen Photo"}
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*"
+              onChange={handleAcarsPhoto} style={{display:"none"}} id="acars-file-input"/>
+            <label htmlFor="acars-file-input"
+              style={{background:ocrBusy?"#c8d4e0":"#1a5a9a",color:"#fff",padding:"0 16px",
+                height:44,borderRadius:6,cursor:ocrBusy?"default":"pointer",fontSize:12,fontWeight:600,
+                fontFamily:F,display:"inline-flex",alignItems:"center",gap:6}}>
+              {ocrBusy
+                ? (ocrProgress>0
+                    ? (lang==="tr"?`Okunuyor... %${ocrProgress}`:`Reading... ${ocrProgress}%`)
+                    : (ocrStage||(lang==="tr"?"Hazırlanıyor...":"Preparing...")))
+                : (lang==="tr"?"Fotoğraf Yükle / Çek":"Upload / Take Photo")}
+            </label>
+            {ocrPreview&&!ocrBusy&&(
+              <button onClick={clearOcrPreview}
+                style={{background:"#f8f9fb",border:"1px solid #c8d4e0",color:"#6a8aaa",
+                  padding:"0 12px",height:44,borderRadius:6,cursor:"pointer",fontSize:11,fontFamily:F}}>
+                {lang==="tr"?"Temizle":"Clear"}
+              </button>
+            )}
+            <span style={{fontSize:9,color:"#5a7a9a",flex:1,minWidth:180}}>
+              {lang==="tr"
+                ?"Kalkış/Varış meydanı, Block Off/On saatleri ve ayın günü otomatik doldurulur — tarih için içinde bulunulan ay/yıl kullanılır."
+                :"Departure/Arrival, Block Off/On times and day-of-month are auto-filled — current month/year is used for the date."}
+            </span>
+          </div>
+
+          {ocrError&&(
+            <div style={{marginTop:8,fontSize:11,color:"#c0392b",background:"#fdecea",
+              border:"1px solid #e0a0a0",borderRadius:6,padding:"7px 10px"}}>
+              ⚠ {ocrError}
+            </div>
+          )}
+
+          {ocrPreview&&(
+            <div style={{marginTop:10}}>
+              <div style={{display:"flex",gap:12,alignItems:"flex-start",flexWrap:"wrap"}}>
+                <div>
+                  <div style={{fontSize:8,color:"#5a7a9a",marginBottom:3}}>{lang==="tr"?"Orijinal":"Original"}</div>
+                  <img src={ocrPreview.imgUrl} alt="ACARS orijinal"
+                    style={{width:110,height:"auto",borderRadius:6,border:"1px solid #c8d4e0"}}/>
+                </div>
+                {ocrPreview.procUrl&&(
+                  <div>
+                    <div style={{fontSize:8,color:"#5a7a9a",marginBottom:3}}>{lang==="tr"?"OCR'a giden (işlenmiş)":"Sent to OCR (processed)"}</div>
+                    <img src={ocrPreview.procUrl} alt="ACARS işlenmiş"
+                      style={{width:110,height:"auto",borderRadius:6,border:"1px solid #a0c8e0",background:"#fff"}}/>
+                  </div>
+                )}
+                <div style={{fontSize:11,color:"#1a3a6e",lineHeight:1.9}}>
+                  <div><strong>{lang==="tr"?"Kalkış":"Dep"}:</strong> {ocrPreview.parsed.from||"—"} &nbsp;
+                    <strong>{lang==="tr"?"Varış":"Arr"}:</strong> {ocrPreview.parsed.to||"—"}</div>
+                  <div><strong>Block Off:</strong> {ocrPreview.parsed.depTime||"—"} &nbsp;
+                    <strong>Block On:</strong> {ocrPreview.parsed.arrTime||"—"}</div>
+                  <div><strong>{lang==="tr"?"Ayın Günü":"Day"}:</strong> {ocrPreview.parsed.day||"—"}
+                    {ocrPreview.parsed.day&&<span style={{color:"#5a7a9a"}}> → {buildDateFromDay(ocrPreview.parsed.day)}</span>}</div>
+                  <button onClick={()=>setShowRawOcr(p=>!p)}
+                    style={{marginTop:4,background:"none",border:"none",color:"#5a7a9a",
+                      fontSize:10,cursor:"pointer",textDecoration:"underline",padding:0,fontFamily:F}}>
+                    {showRawOcr
+                      ? (lang==="tr"?"Ham metni gizle":"Hide raw text")
+                      : (lang==="tr"?"Ham OCR metnini göster":"Show raw OCR text")}
+                  </button>
+                </div>
+              </div>
+              {showRawOcr&&(
+                <pre style={{marginTop:8,background:"#0d1421",color:"#7dd3b0",padding:"10px 12px",
+                  borderRadius:6,fontSize:10,lineHeight:1.5,overflowX:"auto",maxHeight:180,
+                  whiteSpace:"pre-wrap",fontFamily:"monospace"}}>
+                  {ocrPreview.rawText||"(boş)"}
+                </pre>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── Crew Log Toplu İçe Aktarma (PDF/Fotoğraf) ── */}
+        <div className="fcard" style={{marginBottom:12,borderColor:"#c8b8e0",background:"#faf8ff"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <div style={{fontSize:9,color:"#6a3aaa",letterSpacing:2,textTransform:"uppercase",fontWeight:700}}>
+              📋 {lang==="tr"?"Crew Log Toplu Yükleme (PDF/Fotoğraf)":"Crew Log Bulk Import (PDF/Photo)"}
+            </div>
+            <input ref={clFileInputRef} type="file" accept="image/*,.pdf,application/pdf"
+              onChange={handleCrewLogFile} style={{display:"none"}} id="crewlog-file-input"/>
+            <label htmlFor="crewlog-file-input"
+              style={{background:clBusy?"#c8d4e0":"#6a3aaa",color:"#fff",padding:"0 16px",
+                height:44,borderRadius:6,cursor:clBusy?"default":"pointer",fontSize:12,fontWeight:600,
+                fontFamily:F,display:"inline-flex",alignItems:"center",gap:6}}>
+              {clBusy
+                ? (clStage||(lang==="tr"?"Okunuyor...":"Reading..."))
+                : (lang==="tr"?"PDF / Fotoğraf Yükle":"Upload PDF / Photo")}
+            </label>
+            {clPreview&&!clBusy&&(
+              <button onClick={clearClPreview}
+                style={{background:"#f8f9fb",border:"1px solid #c8d4e0",color:"#6a8aaa",
+                  padding:"0 12px",height:44,borderRadius:6,cursor:"pointer",fontSize:11,fontFamily:F}}>
+                {lang==="tr"?"Temizle":"Clear"}
+              </button>
+            )}
+            <span style={{fontSize:9,color:"#7a5a9a",flex:1,minWidth:180}}>
+              {lang==="tr"
+                ?"Birden fazla uçuşu içeren Crew Log tablosunu (PDF veya fotoğraf) yükleyin — tüm 'Flight' satırları otomatik bulunur, 'Pass' satırları atlanır."
+                :"Upload a Crew Log table (PDF or photo) with multiple flights — all 'Flight' rows are found automatically, 'Pass' rows are skipped."}
+            </span>
+          </div>
+
+          {clError&&(
+            <div style={{marginTop:8,fontSize:11,color:"#c0392b",background:"#fdecea",
+              border:"1px solid #e0a0a0",borderRadius:6,padding:"7px 10px"}}>
+              ⚠ {clError}
+            </div>
+          )}
+
+          {clPreview&&clPreview.flights.length>0&&(
+            <div style={{marginTop:10}}>
+              <div style={{fontSize:10,color:"#6a3aaa",marginBottom:6,fontWeight:600}}>
+                {lang==="tr"
+                  ?`${clPreview.flights.length} uçuş bulundu — logbook'a eklemek istediklerinizi seçin:`
+                  :`${clPreview.flights.length} flights found — select which to add to logbook:`}
+                {clPreview.skipped&&clPreview.skipped.length>0&&(
+                  <span style={{color:"#9a8aaa",fontWeight:400}}>
+                    {" "}({clPreview.skipped.length} {lang==="tr"?"Pass satırı atlandı":"Pass rows skipped"})
+                  </span>
+                )}
+              </div>
+
+              <div style={{maxHeight:220,overflowY:"auto",border:"1px solid #d8c8e8",borderRadius:6,background:"#fff"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                  <thead>
+                    <tr style={{background:"#ede4f5",position:"sticky",top:0}}>
+                      <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}></th>
+                      <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}>{lang==="tr"?"Tarih":"Date"}</th>
+                      <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}>{lang==="tr"?"Tip":"Type"}</th>
+                      <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}>{lang==="tr"?"Tescil":"Reg"}</th>
+                      <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}>{lang==="tr"?"Kalkış":"Dep"}</th>
+                      <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}>{lang==="tr"?"Varış":"Arr"}</th>
+                      <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}>Off</th>
+                      <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}>On</th>
+                      <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}>{lang==="tr"?"Notlar":"Remarks"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clPreview.flights.map((f,i)=>(
+                      <tr key={i} style={{borderTop:"1px solid #eee",background:clSelected.has(i)?"#f5f0fc":"#fff"}}>
+                        <td style={{padding:"4px 6px"}}>
+                          <input type="checkbox" checked={clSelected.has(i)} onChange={()=>toggleClFlight(i)}/>
+                        </td>
+                        <td style={{padding:"4px 6px"}}>{f.date}</td>
+                        <td style={{padding:"4px 6px",fontWeight:600}}>{f.acType}</td>
+                        <td style={{padding:"4px 6px"}}>{f.reg}</td>
+                        <td style={{padding:"4px 6px",color:"#0a6a3a",fontWeight:600}}>{f.from}</td>
+                        <td style={{padding:"4px 6px",color:"#0a6a3a",fontWeight:600}}>{f.to}</td>
+                        <td style={{padding:"4px 6px"}}>{f.depTime}</td>
+                        <td style={{padding:"4px 6px"}}>{f.arrTime}</td>
+                        <td style={{padding:"4px 6px",color:"#6a5a3a",fontSize:10}}>{f.remarks||""}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{display:"flex",gap:10,alignItems:"center",marginTop:10}}>
+                <button onClick={importSelectedFlights} disabled={clSelected.size===0}
+                  style={{background:clSelected.size>0?"#6a3aaa":"#c8c0d0",border:"none",color:"#fff",
+                    padding:"9px 20px",borderRadius:6,cursor:clSelected.size>0?"pointer":"default",
+                    fontSize:12,fontWeight:700,fontFamily:F}}>
+                  {lang==="tr"
+                    ?`✓ Seçilenleri Ekle (${clSelected.size})`
+                    :`✓ Add Selected (${clSelected.size})`}
+                </button>
+                <button onClick={()=>setClSelected(new Set(clPreview.flights.map((_,i)=>i)))}
+                  style={{background:"none",border:"1px solid #c8b8e0",color:"#6a3aaa",
+                    padding:"8px 14px",borderRadius:6,cursor:"pointer",fontSize:11,fontFamily:F}}>
+                  {lang==="tr"?"Tümünü Seç":"Select All"}
+                </button>
+                <button onClick={()=>setClSelected(new Set())}
+                  style={{background:"none",border:"1px solid #c8b8e0",color:"#6a3aaa",
+                    padding:"8px 14px",borderRadius:6,cursor:"pointer",fontSize:11,fontFamily:F}}>
+                  {lang==="tr"?"Seçimi Kaldır":"Deselect All"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Synthetic Training Devices Session — BAĞIMSIZ kayıt ──
+             Sadece Instructor + Synthetic (Tarih/Tip/Süre) + Tescil sütunlarını doldurur.
+             Multi Pilot, Total, Landing (Day/Night), Op.Condition (Night/IFR), PIC
+             sütunlarına HİÇ girdi yapmaz. ── */}
+        <div className="fcard" style={{marginBottom:12,borderColor:"#c8b8e0",background:"#faf8ff"}}>
+          <div style={{fontSize:9,color:"#6a3aaa",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:10}}>
+            🎓 {lang==="tr"?"Synthetic Training Devices Session (Kol.12-13)":"Synthetic Training Devices Session (Col.12-13)"}
+          </div>
+          <div style={{fontSize:9,color:"#7a5a9a",marginBottom:10}}>
+            {lang==="tr"
+              ?"Bu kayıt sadece Instructor, Tescil ve Synthetic sütunlarını doldurur — uçuş süresi, PIC, iniş, gece/gündüz gibi diğer sütunlara girdi yapılmaz."
+              :"This entry only fills the Instructor, Registration, and Synthetic columns — no flight time, PIC, landing, or day/night data is entered."}
+          </div>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"flex-end"}}>
+            <div>
+              <label className="flabel" style={{fontSize:8,color:synErrors.synDate?"#c0392b":undefined}}>
+                {t.fSynD}{synErrors.synDate&&<span style={{marginLeft:4,fontWeight:400}}>{synErrors.synDate}</span>}
+              </label>
+              <input type="date" value={synForm.synDate}
+                onChange={e=>{setSynForm(p=>({...p,synDate:e.target.value}));setSynErrors(p=>({...p,synDate:null}));}}
+                className={`finp${synErrors.synDate?" err":""}`} style={{width:150,height:44}}/>
+            </div>
+            <div>
+              <label className="flabel" style={{fontSize:8}}>
+                {lang==="tr"?"Tescil":"Registration"}
+              </label>
+              <input value={synForm.reg}
+                onChange={e=>setSynForm(p=>({...p,reg:e.target.value.toUpperCase()}))}
+                placeholder="TC-AAA"
+                className="finp" style={{width:110,height:44}}/>
+            </div>
+            <div>
+              <label className="flabel" style={{fontSize:8}}>
+                {lang==="tr"?"Instructor Adı":"Instructor Name"}
+              </label>
+              <input value={synForm.instructorName}
+                onChange={e=>setSynForm(p=>({...p,instructorName:e.target.value}))}
+                placeholder={lang==="tr"?"Eğitmen Adı (seç veya yaz)":"Instructor Name (select or type)"}
+                list="instructor-names-list"
+                className="finp" style={{width:170,height:44}}/>
+              <datalist id="instructor-names-list">
+                {instructorNames.map(n=><option key={n} value={n}/>)}
+              </datalist>
+            </div>
+            <div>
+              <label className="flabel" style={{fontSize:8}}>
+                {lang==="tr"?"Instructor Süresi":"Instructor Time"}
+              </label>
+              <TimeInput value={synForm.instructorTime}
+                onChange={v=>setSynForm(p=>({...p,instructorTime:v}))}/>
+            </div>
+            <div>
+              <label className="flabel" style={{fontSize:8,color:synErrors.synType?"#c0392b":undefined}}>
+                {t.fSynT}{synErrors.synType&&<span style={{marginLeft:4,fontWeight:400}}>{synErrors.synType}</span>}
+              </label>
+              <input value={synForm.synType}
+                onChange={e=>{setSynForm(p=>({...p,synType:e.target.value}));setSynErrors(p=>({...p,synType:null}));}}
+                placeholder="FFS B747" className={`finp${synErrors.synType?" err":""}`} style={{width:110,height:44}}/>
+            </div>
+            <div>
+              <label className="flabel" style={{fontSize:8,color:synErrors.synTime?"#c0392b":undefined}}>
+                {t.fSynS}{synErrors.synTime&&<span style={{marginLeft:4,fontWeight:400}}>{synErrors.synTime}</span>}
+              </label>
+              <TimeInput value={synForm.synTime}
+                onChange={v=>{setSynForm(p=>({...p,synTime:v}));setSynErrors(p=>({...p,synTime:null}));}}
+                hasError={!!synErrors.synTime}/>
+            </div>
+            <button onClick={addSyntheticEntry}
+              style={{background:"linear-gradient(135deg,#6a3aaa,#7a4aba)",border:"1.5px solid #8a5aca",
+                color:"#fff",padding:"0 22px",height:44,borderRadius:8,cursor:"pointer",
+                fontSize:12,fontWeight:700,letterSpacing:1,fontFamily:F}}>
+              {lang==="tr"?"+ EKLE":"+ ADD"}
+            </button>
+          </div>
+        </div>
+
+        {/* ROW 1 — Tarih · Uçak · Tescil · İniş */}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-start",marginBottom:10}}>
+          <div>
+            <label className="flabel">{t.fDate}{errors.date&&<span style={{color:"#c0392b",marginLeft:5,textTransform:"none"}}>{errors.date}</span>}</label>
+            <input type="date" value={form.date} onChange={e=>sf("date",e.target.value)}
+              className={`finp${errors.date?" err":""}`} style={{width:144,height:40}}/>
+          </div>
+          <div>
+            <label className="flabel">{t.fAC}</label>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+              {AC_TYPES.map(ac=>(
+                <button key={ac} onClick={()=>sf("acType",ac)}
+                  className={`ac-btn${form.acType===ac?" sel":""}`}>{ac}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="flabel">{t.fReg}{errors.reg&&<span style={{color:"#c0392b",marginLeft:5,textTransform:"none"}}>{errors.reg}</span>}</label>
+            <input value={form.reg} onChange={e=>sf("reg",e.target.value.toUpperCase())} placeholder="TC-AAA"
+              className={`finp${errors.reg?" err":""}`} style={{width:96,height:40}}/>
+          </div>
+          <div>
+            <label className="flabel">{t.fLdg}</label>
+            <input type="number" min="0" max="99" value={form.ldgs} onChange={e=>sf("ldgs",e.target.value)}
+              className="finp" style={{width:58,height:40,textAlign:"center"}}/>
+          </div>
+        </div>
+
+        {/* ROW 2 — Dep · Arr · Pilot Süresi (ICAO girişinde sayfa kaymaz) */}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10,alignItems:"flex-start"}}>
+
+          {/* Kalkış */}
+          <div className="fcard" style={{flex:"0 0 auto"}}>
+            <div style={{fontSize:9,color:"#3a6aaa",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:8}}>{t.fDep}</div>
+            <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+              <div style={{minWidth:80}}>
+                <label className="flabel" style={{fontSize:8}}>ICAO</label>
+                <input value={form.from} onChange={e=>sf("from",e.target.value.toUpperCase())} placeholder="LTFM"
+                  className={`finp${errors.from?" err":""}`}
+                  style={{width:80,height:40,fontSize:20,fontWeight:700,letterSpacing:3,
+                    color:depInfo?"#1a6a3a":"#1a2a3a",borderColor:depInfo?"#3a9a5a":undefined,textAlign:"center"}}/>
+                {/* Sabit yükseklik — ICAO girilirken sayfa kaymasını önler */}
+                <div style={{height:16,marginTop:2,fontSize:8,overflow:"hidden"}}>
+                  {depInfo
+                    ? <span style={{color:"#1a6a3a"}}>✓ {depInfo.name}</span>
+                    : errors.from
+                      ? <span style={{color:"#c0392b"}}>{errors.from}</span>
+                      : null}
+                </div>
+              </div>
+              <div>
+                <label className="flabel" style={{fontSize:8}}>{t.fDepT}</label>
+                <TimeInput value={form.depTime} onChange={v=>sf("depTime",v)} hasError={!!errors.depTime}/>
+                <div style={{height:16,marginTop:2,fontSize:8,overflow:"hidden"}}>
+                  {errors.depTime&&<span style={{color:"#c0392b"}}>{errors.depTime}</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{display:"flex",alignItems:"center",color:"#9aacbe",fontSize:20,paddingTop:36}}>→</div>
+
+          {/* Varış */}
+          <div className="fcard" style={{flex:"0 0 auto"}}>
+            <div style={{fontSize:9,color:"#3a6aaa",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:8}}>{t.fArr}</div>
+            <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+              <div style={{minWidth:80}}>
+                <label className="flabel" style={{fontSize:8}}>ICAO</label>
+                <input value={form.to} onChange={e=>sf("to",e.target.value.toUpperCase())} placeholder="VHHH"
+                  className={`finp${errors.to?" err":""}`}
+                  style={{width:80,height:40,fontSize:20,fontWeight:700,letterSpacing:3,
+                    color:arrInfo?"#1a6a3a":"#1a2a3a",borderColor:arrInfo?"#3a9a5a":undefined,textAlign:"center"}}/>
+                <div style={{height:16,marginTop:2,fontSize:8,overflow:"hidden"}}>
+                  {arrInfo
+                    ? <span style={{color:"#1a6a3a"}}>✓ {arrInfo.name}</span>
+                    : errors.to
+                      ? <span style={{color:"#c0392b"}}>{errors.to}</span>
+                      : null}
+                </div>
+              </div>
+              <div>
+                <label className="flabel" style={{fontSize:8}}>{t.fArrT}</label>
+                <TimeInput value={form.arrTime} onChange={v=>sf("arrTime",v)} hasError={!!errors.arrTime}/>
+                <div style={{height:16,marginTop:2,fontSize:8,overflow:"hidden"}}>
+                  {errors.arrTime&&<span style={{color:"#c0392b"}}>{errors.arrTime}</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Önizleme */}
+          {prev.total>0&&(
+            <div className="fcard" style={{flex:"0 0 auto",background:"#f0f6ff",borderColor:"#a0c0e8",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+              <div style={{fontSize:8,color:"#3a6aaa",letterSpacing:2,marginBottom:8,fontWeight:700}}>{t.preview.toUpperCase()}</div>
+              <div style={{display:"flex",gap:14}}>
+                <PV label={lang==="tr"?"Toplam":"Total"} val={hhmm(prev.total)} col="#00004a"/>
+                <PV label={lang==="tr"?"☀ Gündüz":"☀ Day"} val={hhmm(prev.day)} col="#5a3a00"/>
+                <PV label={lang==="tr"?"☽ Gece":"☽ Night"} val={hhmm(prev.night)} col="#0000aa"/>
+              </div>
+            </div>
+          )}
+
+          {/* Pilot Süresi — ÇOKLU seçim (checkbox toggle) */}
+          <div className="fcard" style={{flex:"0 0 auto"}}>
+            <div style={{fontSize:9,color:"#3a6aaa",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:8}}>
+              {t.fPilot}
+              <span style={{fontSize:8,color:"#6a8aaa",marginLeft:6,fontWeight:400,textTransform:"none"}}>
+                {lang==="tr"?"(seçilenler = toplam uçuş)":"(selected = total time)"}
+              </span>
+            </div>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              {[["singleSE",t.fSE],["singleME",t.fME],["multiPilot",t.fMP]].map(([k,lbl])=>{
+                const modes=Array.isArray(form.pilotTimeModes)?form.pilotTimeModes:["multiPilot"];
+                const isActive=modes.includes(k);
+                function toggleMode(){
+                  const next=isActive?modes.filter(m=>m!==k):[...modes,k];
+                  sf("pilotTimeModes",next);
+                }
+                return(
+                  <button key={k}
+                    className={`sel-btn${isActive?" active":""}`}
+                    onClick={toggleMode}>
+                    <span style={{width:14,height:14,border:`2px solid ${isActive?"#fff":"#9aacbe"}`,
+                      borderRadius:3,display:"inline-flex",alignItems:"center",justifyContent:"center",
+                      background:isActive?"rgba(255,255,255,0.25)":"transparent",flexShrink:0}}>
+                      {isActive&&<span style={{color:"#fff",fontSize:11,lineHeight:1}}>✓</span>}
+                    </span>
+                    {lbl}
+                    {isActive&&prev.total>0&&(
+                      <span style={{fontSize:9,marginLeft:4,opacity:.8}}>→ {hhmm(prev.total)}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* ROW 3 — Pilot Fonksiyon · Synthetic · PIC Adı · Notlar */}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12,alignItems:"flex-start"}}>
+          <div className="fcard" style={{flex:"0 0 auto"}}>
+            <div style={{fontSize:9,color:"#3a6aaa",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:8}}>
+              {t.fFn}
+              <span style={{fontSize:8,color:"#6a8aaa",marginLeft:6,fontWeight:400,textTransform:"none"}}>
+                {lang==="tr"?"(seçilen = toplam · IFR = gündüz)":"(selected = total · IFR = day)"}
+              </span>
+            </div>
+            <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+              {[["pic",t.fPIC],["coPilot",t.fCO],["dual",t.fDual]].map(([k,lbl])=>(
+                <button key={k}
+                  className={`sel-btn${form.pilotFnMode===k?" active":""}`}
+                  onClick={()=>sf("pilotFnMode",k)}>
+                  <span className="dot"/>
+                  {lbl}
+                  {form.pilotFnMode===k&&prev.total>0&&(
+                    <span style={{fontSize:9,marginLeft:4,opacity:.8}}>→ {hhmm(prev.total)}</span>
+                  )}
+                </button>
+              ))}
+              <div style={{height:38,display:"flex",alignItems:"center",
+                padding:"0 12px",borderRadius:6,background:"#eef4fb",
+                border:"1.5px solid #a0c0e0",fontSize:12,color:"#1a3a6e",fontWeight:600,gap:6}}>
+                <span style={{fontSize:9,color:"#6a8aaa",fontWeight:400}}>{t.fIFR}:</span>
+                <span style={{fontWeight:700}}>
+                  {prev.total>0?hhmm(prev.day):lang==="tr"?"auto":"auto"}
+                </span>
+                <span style={{fontSize:9,color:"#3a6aaa"}}>
+                  {lang==="tr"?"(= gündüz)":"(= day)"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="fcard" style={{flex:"0 0 auto",background:"#f4f0fb",borderColor:"#c8b8e0"}}>
+            <div style={{fontSize:9,color:"#6a3aaa",letterSpacing:2,textTransform:"uppercase",fontWeight:700,marginBottom:8}}>
+              {lang==="tr"?"Instructor (Kol.12)":"Instructor (Col.12)"}
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
+              <div>
+                <label className="flabel" style={{fontSize:8}}>{lang==="tr"?"Adı":"Name"}</label>
+                <input value={form.instructorName} onChange={e=>sf("instructorName",e.target.value)}
+                  placeholder={lang==="tr"?"Eğitmen Adı":"Instructor Name"}
+                  list="instructor-names-list-flight"
+                  className="finp" style={{width:140,height:40}}/>
+                <datalist id="instructor-names-list-flight">
+                  {instructorNames.map(n=><option key={n} value={n}/>)}
+                </datalist>
+              </div>
+              <div>
+                <label className="flabel" style={{fontSize:8}}>{lang==="tr"?"Süre":"Time"}</label>
+                <TimeInput value={form.instructorTime} onChange={v=>sf("instructorTime",v)}/>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="flabel">{t.fPICn}</label>
+            <input value={form.picName} onChange={e=>sf("picName",e.target.value)} placeholder="Soyad, Ad"
+              className="finp" style={{width:150,height:40}}/>
+          </div>
+          <div style={{flex:1,minWidth:180}}>
+            <label className="flabel">{t.fRmk}</label>
+            <textarea value={form.remarks} onChange={e=>sf("remarks",e.target.value)} rows={2}
+              className="finp" style={{resize:"vertical",padding:"7px 10px",height:58}}/>
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+          <button onClick={addOrUpdate}
+            style={{background:editId?"#1a6a1a":"#1a3a6e",
+              border:`1.5px solid ${editId?"#3a9a3a":"#3a6aaa"}`,
+              color:"#fff",padding:"11px 26px",borderRadius:8,cursor:"pointer",
+              fontSize:13,fontWeight:700,letterSpacing:1.5,fontFamily:F,height:44}}>
+            {editId?t.updateBtn:t.addBtn}
+          </button>
+          {editId&&(
+            <button onClick={cancelEdit}
+              style={{background:"#f8f9fb",border:"1.5px solid #c8d4e0",color:"#4a6080",
+                padding:"11px 18px",borderRadius:8,cursor:"pointer",fontSize:12,fontFamily:F,height:44}}>
+              {t.cancelBtn}
+            </button>
+          )}
+          <span style={{fontSize:9,color:"#6a8aaa"}}>Dep/Arr UTC = Block · AMC1 FCL.050 ±30dk · Per-minute interpolation</span>
+        </div>
+      </div>
+
+      {/* ── LOGBOOK TABLE ── */}
+      <div style={{padding:"16px 0 calc(16px + env(safe-area-inset-bottom))"}}>
+
+        {/* Toolbar */}
+        <div className="no-print" style={{padding:"0 16px",paddingLeft:"calc(16px + env(safe-area-inset-left))",
+          paddingRight:"calc(16px + env(safe-area-inset-right))",
+          marginBottom:10,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+          <div style={{fontSize:11,color:"#1a3a6e",letterSpacing:3,textTransform:"uppercase",fontWeight:700}}>{t.secLog}</div>
+          {rows.length>0&&<span style={{fontSize:11,color:"#6a8aaa"}}>· {filtered.length}/{rows.length}</span>}
+          <div style={{display:"flex",gap:6,alignItems:"center",marginLeft:"auto",flexWrap:"wrap"}}>
+            <span style={{fontSize:9,color:"#6a8aaa"}}>{t.filterFrom}:</span>
+            <input type="date" value={fFrom} onChange={e=>setFFrom(e.target.value)}
+              className="finp" style={{width:132,height:30,fontSize:12}}/>
+            <span style={{fontSize:9,color:"#6a8aaa"}}>{t.filterTo}:</span>
+            <input type="date" value={fTo} onChange={e=>setFTo(e.target.value)}
+              className="finp" style={{width:132,height:30,fontSize:12}}/>
+            <Btn onClick={()=>setAf({from:fFrom,to:fTo})} label={t.filterBtn}/>
+            <Btn onClick={()=>{setFFrom("");setFTo("");setAf({from:"",to:""});}} label={t.clearBtn} sec/>
+            <Btn onClick={()=>window.print()} label={t.printBtn} primary/>
+          </div>
+        </div>
+
+        {isFullyBackdatedReport&&(
+          <div className="no-print" style={{margin:"0 16px 10px",padding:"8px 14px",
+            background:"#fff8e8",border:"1px solid #e8c878",borderRadius:6,fontSize:11,color:"#7a5a00"}}>
+            ℹ️ {lang==="tr"
+              ?`Seçilen tarih aralığı, referans tarihinden (${refDate}) önceki bir döneme ait — bu nedenle TOTAL'e PREVIOUS PAGE TOTAL eklenmiyor, sadece bu aralıktaki uçuşların toplamı gösteriliyor.`
+              :`The selected date range is before the reference date (${refDate}) — PREVIOUS PAGE TOTAL is not added to TOTAL, only the sum for this range is shown.`}
+          </div>
+        )}
+
+        {/* Screen table — iPad'de tam görünsün: table-layout:auto, font büyük */}
+        <div className="no-print lb-wrap" style={{
+          paddingLeft:"calc(8px + env(safe-area-inset-left))",
+          paddingRight:"calc(8px + env(safe-area-inset-right))"}}>
+          <table className="lb-table-screen" style={{tableLayout:"auto",minWidth:"100%"}}>
+            <thead>
+              <tr>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>1</span>{t.g1}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>2</span>{t.s2}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>&nbsp;</span>{t.s3}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>3</span>{t.s4}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>&nbsp;</span>{t.s5}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>4</span>{t.s6}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>&nbsp;</span>{t.s7}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>5</span>{t.s8}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>&nbsp;</span>{t.s9}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>6</span>{t.g6}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>7</span>{t.g7}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>8</span>{t.g8}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>9</span>{t.s13d}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>&nbsp;</span>{t.s13n}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>10</span>{t.s15}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>&nbsp;</span>{t.s16}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>11</span>{t.s17}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>&nbsp;</span>{t.s18}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>&nbsp;</span>{t.s19}</th>
+                <th className="ins-th"><span style={{display:"block",fontSize:7,color:"#9a7abf"}}>12</span>{t.g12}</th>
+                <th className="syn-th"><span style={{display:"block",fontSize:7,color:"#9a7abf"}}>13</span>{t.s21}</th>
+                <th className="syn-th"><span style={{display:"block",fontSize:7,color:"#9a7abf"}}>&nbsp;</span>{t.s22}</th>
+                <th className="syn-th"><span style={{display:"block",fontSize:7,color:"#9a7abf"}}>&nbsp;</span>{t.s23}</th>
+                <th><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>14</span>{t.g14}</th>
+                <th className="no-print"><span style={{display:"block",fontSize:7,color:"#6a8aaa"}}>&nbsp;</span>&nbsp;</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length===0?(
+                <tr><td colSpan={26} style={{padding:"36px 0",color:"#9aacbe",fontSize:12,letterSpacing:2}}>{t.empty}</td></tr>
+              ):(()=>{
+                // PREVIOUS PAGE TOTAL satırının, girilen referans tarihine göre kronolojik
+                // konumda (tablo içinde, ilgili satırlar arasında) highlight'lı olarak
+                // gösterilmesi için: referans tarihinden SONRAKİ ilk satırdan hemen önce
+                // bu ayırıcıyı enjekte ediyoruz. Referans tarihi boşsa hiç gösterilmez.
+                let markerInserted=false;
+                const out=[];
+                filtered.forEach((r,idx)=>{
+                  const showMarkerBefore=refDate && !markerInserted && r.date && r.date>refDate;
+                  if(showMarkerBefore){
+                    markerInserted=true;
+                    out.push(
+                      <tr key="prev-total-marker" className="prev-marker-row">
+                        <td colSpan={7} style={{textAlign:"right",paddingRight:8,fontSize:10,fontWeight:700}}>
+                          {t.prevTotal}
+                          <span style={{fontWeight:400,marginLeft:6,fontSize:9}}>
+                            ({lang==="tr"?"ref":"ref"}: {refDate})
+                          </span>
+                        </td>
+                        <td>{hhmmBlank(prevMin.se)}</td><td>{hhmmBlank(prevMin.me)}</td>
+                        <td>{hhmmBlank(prevMin.mp)}</td>
+                        <td className="total">{prevMin.total>0?hhmm(prevMin.total):"—"}</td>
+                        <td></td>
+                        <td className="day">{prevMin.ldgD||""}</td>
+                        <td className="night">{prevMin.ldgN||""}</td>
+                        <td className="night">{hhmmBlank(prevMin.night)}</td>
+                        <td>{hhmmBlank(prevMin.ifr)}</td>
+                        <td>{hhmmBlank(prevMin.pic)}</td><td>{hhmmBlank(prevMin.co)}</td><td>{hhmmBlank(prevMin.dual)}</td>
+                        <td>{prevMin.instructorTime>0?hhmm(prevMin.instructorTime):""}</td><td></td><td></td>
+                        <td>{prevMin.synTime>0?hhmm(prevMin.synTime):""}</td>
+                        <td></td><td className="no-print"></td>
+                      </tr>
+                    );
+                  }
+                  const lc=calcFlight(r);
+                  const isEdit=editId===r.id;
+                  out.push(
+                    <tr key={r.id} className={isEdit?"editing-row":""}>
+                      <td>{r.date}</td>
+                      <td style={{fontWeight:700}}>{r.acType}</td>
+                      <td>{r.reg}</td>
+                      <td style={{fontWeight:700}}>{r.from}</td>
+                      <td>{r.depTime?r.depTime+"Z":""}</td>
+                      <td style={{fontWeight:700}}>{r.to}</td>
+                      <td>{r.arrTime?r.arrTime+"Z":""}</td>
+                      <td>{r.singleSE||""}</td>
+                      <td>{r.singleME||""}</td>
+                      <td>{r.multiPilot||""}</td>
+                      <td className="total">{lc.total>0?hhmm(lc.total):"—"}</td>
+                      <td>{r.picName||""}</td>
+                      <td className="day">{lc.ldgDay>0?lc.ldgDay:""}</td>
+                      <td className="night">{lc.ldgNight>0?lc.ldgNight:""}</td>
+                      <td className="night">{lc.night>0?hhmm(lc.night):"—"}</td>
+                      <td>{r.ifr||""}</td>
+                      <td style={{fontWeight:700}}>{r.pic||""}</td>
+                      <td>{r.coPilot||""}</td>
+                      <td>{r.dual||""}</td>
+                      <td className="ins-td" style={{whiteSpace:"normal",lineHeight:1.15}}>{r.instructorName&&<div style={{fontSize:8,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis"}}>{r.instructorName}</div>}{r.instructorTime||""}</td>
+                      <td className="syn-td">{r.synDate||""}</td>
+                      <td className="syn-td">{r.synType||""}</td>
+                      <td className="syn-td">{r.synTime||""}</td>
+                      <td style={{textAlign:"left",maxWidth:120}}>{r.remarks||""}</td>
+                      <td className="no-print" style={{whiteSpace:"nowrap",background:"#f8f9fb"}}>
+                        <button onClick={()=>startEdit(r)} title={t.editBtn}
+                          style={{background:"#e8f0f8",border:"1px solid #a0c0e0",color:"#1a3a6e",
+                            borderRadius:4,cursor:"pointer",padding:"2px 7px",fontSize:11,marginRight:3,fontFamily:F}}>
+                          {t.editBtn}
+                        </button>
+                        <button onClick={()=>removeRow(r.id)} title={t.delBtn}
+                          style={{background:"#fdecea",border:"1px solid #e0a0a0",color:"#8a1a1a",
+                            borderRadius:4,cursor:"pointer",padding:"2px 7px",fontSize:11,fontFamily:F}}>
+                          {t.delBtn}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                });
+                // Eğer referans tarihi tüm satırlardan büyük/eşitse (yani hiç sonrası yoksa),
+                // ayırıcıyı listenin en sonuna ekle.
+                if(refDate && !markerInserted){
+                  out.push(
+                    <tr key="prev-total-marker" className="prev-marker-row">
+                      <td colSpan={7} style={{textAlign:"right",paddingRight:8,fontSize:10,fontWeight:700}}>
+                        {t.prevTotal}
+                        <span style={{fontWeight:400,marginLeft:6,fontSize:9}}>
+                          ({lang==="tr"?"ref":"ref"}: {refDate})
+                        </span>
+                      </td>
+                      <td>{hhmmBlank(prevMin.se)}</td><td>{hhmmBlank(prevMin.me)}</td>
+                      <td>{hhmmBlank(prevMin.mp)}</td>
+                      <td className="total">{prevMin.total>0?hhmm(prevMin.total):"—"}</td>
+                      <td></td>
+                      <td className="day">{prevMin.ldgD||""}</td>
+                      <td className="night">{prevMin.ldgN||""}</td>
+                      <td className="night">{hhmmBlank(prevMin.night)}</td>
+                      <td>{hhmmBlank(prevMin.ifr)}</td>
+                      <td>{hhmmBlank(prevMin.pic)}</td><td>{hhmmBlank(prevMin.co)}</td><td>{hhmmBlank(prevMin.dual)}</td>
+                      <td>{prevMin.instructorTime>0?hhmm(prevMin.instructorTime):""}</td><td></td><td></td>
+                      <td>{prevMin.synTime>0?hhmm(prevMin.synTime):""}</td>
+                      <td></td><td className="no-print"></td>
+                    </tr>
+                  );
+                }
+                return out;
+              })()}
+            </tbody>
+            {filtered.length>0&&(
+              <tfoot>
+                <tr className="tot-row">
+                  <td colSpan={7} style={{textAlign:"right",paddingRight:8,fontSize:10,letterSpacing:1}}>
+                    {t.pageTotal}
+                  </td>
+                  <td>{hhmmBlank(tots.se)}</td><td>{hhmmBlank(tots.me)}</td>
+                  <td>{hhmmBlank(tots.mp)}</td>
+                  <td className="total">{hhmm(tots.total)}</td>
+                  <td></td>
+                  <td className="day">{tots.ldgD||""}</td>
+                  <td className="night">{tots.ldgN||""}</td>
+                  <td className="night">{hhmmBlank(tots.night)}</td>
+                  <td>{hhmmBlank(tots.ifr)}</td>
+                  <td>{hhmmBlank(tots.pic)}</td><td>{hhmmBlank(tots.co)}</td><td>{hhmmBlank(tots.dual)}</td>
+                  <td>{tots.instructorTime>0?hhmm(tots.instructorTime):""}</td><td></td><td></td>
+                  <td>{tots.synTime>0?hhmm(tots.synTime):""}</td>
+                  <td></td><td className="no-print"></td>
+                </tr>
+                <tr className="prev-row">
+                  <td colSpan={20} style={{textAlign:"right",paddingRight:8,fontSize:9,padding:"4px 8px"}}>
+                    <span style={{color:"#7a8aaa"}}>
+                      {t.prevTotal}: {prevMin.total>0?hhmm(prevMin.total):"—"}
+                      {prevMin.instructorTime>0&&` · Instr: ${hhmm(prevMin.instructorTime)}`}
+                      {prevTotals.asOfDate&&` (${lang==="tr"?"ref":"ref"}: ${prevTotals.asOfDate})`}
+                    </span>
+                    <button onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}
+                      className="no-print"
+                      style={{marginLeft:8,background:"#eef4fb",border:"1px solid #a0c0e0",color:"#1a3a6e",
+                        borderRadius:4,cursor:"pointer",padding:"1px 8px",fontSize:9,fontFamily:F}}>
+                      {lang==="tr"?"Düzenle ↑":"Edit ↑"}
+                    </button>
+                  </td>
+                </tr>
+                <tr className="grand-row">
+                  <td colSpan={7} style={{textAlign:"right",paddingRight:8,fontSize:9}}>
+                    {t.grandTotal}
+                    <button onClick={copyTotalToPrevious}
+                      className="no-print"
+                      title={lang==="tr"?"Bu TOTAL değerini yeni dönemin PREVIOUS PAGE TOTAL'i yap":"Carry this TOTAL forward as next period's PREVIOUS PAGE TOTAL"}
+                      style={{marginLeft:8,background:"#e8f5ee",border:"1px solid #a0d0b8",color:"#0a6a3a",
+                        borderRadius:4,cursor:"pointer",padding:"1px 8px",fontSize:9,fontFamily:F}}>
+                      {lang==="tr"?"→ Yeni Sayfaya Taşı":"→ Carry to New Page"}
+                    </button>
+                  </td>
+                  <td>{hhmmBlank(grandTots.se)}</td><td>{hhmmBlank(grandTots.me)}</td>
+                  <td>{hhmmBlank(grandTots.mp)}</td>
+                  <td className="total">{hhmm(grandTots.total)}</td>
+                  <td></td>
+                  <td className="day">{grandTots.ldgD||""}</td>
+                  <td className="night">{grandTots.ldgN||""}</td>
+                  <td className="night">{hhmmBlank(grandTots.night)}</td>
+                  <td>{hhmmBlank(grandTots.ifr)}</td>
+                  <td>{hhmmBlank(grandTots.pic)}</td><td>{hhmmBlank(grandTots.co)}</td><td>{hhmmBlank(grandTots.dual)}</td>
+                  <td>{grandTots.instructorTime>0?hhmm(grandTots.instructorTime):""}</td><td></td><td></td>
+                  <td>{grandTots.synTime>0?hhmm(grandTots.synTime):""}</td>
+                  <td></td><td className="no-print"></td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+
+        {/* ── PRINT TABLE ── */}
+        <div className="print-show" style={{display:"none"}}>
+          <div className="p-page">
+            <div className="p-title">
+              <div className="p-title-main">{t.ph_title} — {t.ph_sub}</div>
+              <div className="p-title-sub">
+                {t.pilot}: {pilot} &nbsp;|&nbsp; {t.lic}: {license}
+                {(af.from||af.to)?` &nbsp;|&nbsp; ${t.filterFrom}: ${af.from||"—"} → ${af.to||"—"}`:""}
+              </div>
+            </div>
+            <table className="p-tbl">
+              <colgroup>
+                <col className="w1"/><col className="w2"/><col className="w3"/>
+                <col className="w4"/><col className="w5"/>
+                <col className="w6"/><col className="w7"/>
+                <col className="w8"/><col className="w9"/>
+                <col className="w10"/><col className="w11"/><col className="w12"/>
+                <col className="w13"/><col className="w14"/>
+                <col className="w15"/><col className="w16"/>
+                <col className="w17"/><col className="w18"/><col className="w19"/>
+                <col className="w20"/>
+                <col className="w21"/><col className="w22"/><col className="w23"/>
+                <col className="w24"/>
+              </colgroup>
+              <thead>
+                <tr className="rg">
+                  <th>1<br/>{t.g1}</th>
+                  <th>2<br/>{t.s2}</th>
+                  <th>{t.s3}</th>
+                  <th>3<br/>{t.s4}</th>
+                  <th>{t.s5}</th>
+                  <th>4<br/>{t.s6}</th>
+                  <th>{t.s7}</th>
+                  <th>5<br/>{t.s8}</th>
+                  <th>{t.s9}</th>
+                  <th>6<br/>{t.g6}</th>
+                  <th>7<br/>{t.g7}</th>
+                  <th>8<br/>{t.g8}</th>
+                  <th>9<br/>{t.s13d}</th>
+                  <th>{t.s13n}</th>
+                  <th>10<br/>{t.s15}</th>
+                  <th>{t.s16}</th>
+                  <th>11<br/>{t.s17}</th>
+                  <th>{t.s18}</th>
+                  <th>{t.s19}</th>
+                  <th className="i-g">12<br/>{t.g12}</th>
+                  <th className="s-g">13<br/>{t.s21}</th>
+                  <th className="s-g">{t.s22}</th>
+                  <th className="s-g">{t.s23}</th>
+                  <th>14<br/>{t.g14}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(r=>{
+                  const lc=calcFlight(r);
+                  return(
+                    <tr key={r.id} className="rd">
+                      <td>{r.date}</td>
+                      <td style={{fontWeight:700}}>{r.acType}</td>
+                      <td>{r.reg}</td>
+                      <td style={{fontWeight:700}}>{r.from}</td>
+                      <td>{r.depTime||""}</td>
+                      <td style={{fontWeight:700}}>{r.to}</td>
+                      <td>{r.arrTime||""}</td>
+                      <td>{r.singleSE||""}</td>
+                      <td>{r.singleME||""}</td>
+                      <td>{r.multiPilot||""}</td>
+                      <td className="c-t">{lc.total>0?hhmm(lc.total):""}</td>
+                      <td style={{textAlign:"left",fontSize:"5pt"}}>{r.picName||""}</td>
+                      <td className="c-d">{lc.ldgDay>0?lc.ldgDay:""}</td>
+                      <td className="c-n">{lc.ldgNight>0?lc.ldgNight:""}</td>
+                      <td className="c-n">{lc.night>0?hhmm(lc.night):""}</td>
+                      <td>{r.ifr||""}</td>
+                      <td style={{fontWeight:700}}>{r.pic||""}</td>
+                      <td>{r.coPilot||""}</td>
+                      <td>{r.dual||""}</td>
+                      <td style={{fontSize:"5pt"}}>{r.instructorName&&<div style={{fontSize:"4pt",lineHeight:1.1}}>{r.instructorName}</div>}{r.instructorTime||""}</td>
+                      <td className="s-d" style={{fontSize:"5pt"}}>{r.synDate||""}</td>
+                      <td className="s-d" style={{fontSize:"5pt"}}>{r.synType||""}</td>
+                      <td className="s-d" style={{fontSize:"5pt"}}>{r.synTime||""}</td>
+                      <td style={{textAlign:"left",fontSize:"5pt"}}>{r.remarks||""}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="rt">
+                  <td colSpan={7} style={{textAlign:"right",paddingRight:"1mm"}}>{t.pageTotal}</td>
+                  <td>{hhmmBlank(tots.se)}</td><td>{hhmmBlank(tots.me)}</td>
+                  <td>{hhmmBlank(tots.mp)}</td>
+                  <td className="c-t">{hhmm(tots.total)}</td><td></td>
+                  <td className="c-d">{tots.ldgD||""}</td>
+                  <td className="c-n">{tots.ldgN||""}</td>
+                  <td className="c-n">{hhmmBlank(tots.night)}</td>
+                  <td>{hhmmBlank(tots.ifr)}</td>
+                  <td>{hhmmBlank(tots.pic)}</td><td>{hhmmBlank(tots.co)}</td><td>{hhmmBlank(tots.dual)}</td>
+                  <td></td><td></td><td></td>
+                  <td>{tots.synTime>0?hhmm(tots.synTime):""}</td><td></td>
+                </tr>
+                <tr className="rp">
+                  <td colSpan={7} style={{textAlign:"right",paddingRight:"1mm",fontStyle:"italic"}}>
+                    {t.prevTotal}{prevTotals.asOfDate?` (${lang==="tr"?"ref":"ref"}: ${prevTotals.asOfDate})`:""}
+                  </td>
+                  <td>{hhmmBlank(prevMin.se)}</td><td>{hhmmBlank(prevMin.me)}</td>
+                  <td>{hhmmBlank(prevMin.mp)}</td>
+                  <td className="c-t">{prevMin.total>0?hhmm(prevMin.total):""}</td><td></td>
+                  <td className="c-d">{prevMin.ldgD||""}</td>
+                  <td className="c-n">{prevMin.ldgN||""}</td>
+                  <td className="c-n">{hhmmBlank(prevMin.night)}</td>
+                  <td>{hhmmBlank(prevMin.ifr)}</td>
+                  <td>{hhmmBlank(prevMin.pic)}</td><td>{hhmmBlank(prevMin.co)}</td><td>{hhmmBlank(prevMin.dual)}</td>
+                  <td></td><td></td><td></td>
+                  <td>{prevMin.synTime>0?hhmm(prevMin.synTime):""}</td><td></td>
+                </tr>
+                <tr className="rr">
+                  <td colSpan={7} style={{textAlign:"right",paddingRight:"1mm",fontStyle:"italic"}}>{t.grandTotal}</td>
+                  <td>{hhmmBlank(grandTots.se)}</td><td>{hhmmBlank(grandTots.me)}</td>
+                  <td>{hhmmBlank(grandTots.mp)}</td>
+                  <td className="c-t">{hhmm(grandTots.total)}</td><td></td>
+                  <td className="c-d">{grandTots.ldgD||""}</td>
+                  <td className="c-n">{grandTots.ldgN||""}</td>
+                  <td className="c-n">{hhmmBlank(grandTots.night)}</td>
+                  <td>{hhmmBlank(grandTots.ifr)}</td>
+                  <td>{hhmmBlank(grandTots.pic)}</td><td>{hhmmBlank(grandTots.co)}</td><td>{hhmmBlank(grandTots.dual)}</td>
+                  <td></td><td></td><td></td>
+                  <td>{grandTots.synTime>0?hhmm(grandTots.synTime):""}</td><td></td>
+                </tr>
+              </tfoot>
+            </table>
+            <div className="p-foot">
+              <span>SHGM / EASA Part-FCL.050 · AMC1 FCL.050 · Jean Meeus · Per-minute interpolation</span>
+              <span>{t.sig}: ___________________________</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+// ── Micro components ──────────────────────────────────────────────────────────
+function HdrInput({label,value,onChange,ph,w}){
+  return(
+    <div>
+      <div style={{fontSize:7,color:"#4a9eff",letterSpacing:1.5,textTransform:"uppercase",marginBottom:3,fontFamily:F}}>{label}</div>
+      <input value={value} onChange={onChange} placeholder={ph}
+        style={{background:"transparent",border:"none",borderBottom:"1px solid #2a4060",
+          color:"#c9d6e8",fontSize:12,outline:"none",width:w,fontFamily:F,padding:"2px 0"}}/>
+    </div>
+  );
+}
+function PV({label,val,col}){
+  return(
+    <div>
+      <div style={{fontSize:8,color:"#6a8aaa",marginBottom:2,fontFamily:F}}>{label}</div>
+      <div style={{fontSize:15,fontWeight:700,color:col,fontFamily:F}}>{val}</div>
+    </div>
+  );
+}
+function Btn({onClick,label,sec,primary}){
+  return(
+    <button onClick={onClick} style={{
+      background:primary?"#1a3a6e":sec?"#f8f9fb":"#e8eef4",
+      border:`1.5px solid ${primary?"#3a6aaa":sec?"#c8d4e0":"#a0b8cc"}`,
+      color:primary?"#fff":sec?"#6a8aaa":"#1a2a3a",
+      padding:"6px 12px",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600,
+      height:30,whiteSpace:"nowrap",fontFamily:F}}>
+      {label}
+    </button>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById('root'));
+</script>
+<script>
+window.addEventListener('beforeprint',()=>{document.querySelectorAll('.print-show').forEach(e=>e.style.display='block');});
+window.addEventListener('afterprint',()=>{document.querySelectorAll('.print-show').forEach(e=>e.style.display='none');});
+// Service Worker sadece https/localhost altında ve dosya varsa kaydedilir — file:// açılışta hataya sebep olmaz
+try{
+  if('serviceWorker'in navigator && (location.protocol==='https:'||location.hostname==='localhost')){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    });
+  }
+}catch(e){/* file:// veya kısıtlı ortamlarda sessizce yok say */}
+</script>
+</body>
+</html>
