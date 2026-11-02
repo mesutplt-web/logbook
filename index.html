@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Logbook"/>
 <meta name="theme-color" content="#1a2a3a"/>
-<title>EASA Pilot Logbook v7.21</title>
+<title>EASA Pilot Logbook v7.22</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="icon" href="icon-32.png"/>
 <link rel="apple-touch-icon" href="icon-180.png"/>
@@ -183,7 +183,7 @@ const F="Arial,sans-serif";
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const L={
 tr:{
-  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v7.21",
+  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v7.22",
   pilot:"Pilot Adı",lic:"Lisans No",
   secForm:"✦ Uçuş Girişi",secLog:"✦ Logbook",
   fDate:"Tarih",fAC:"Uçak Tipi",fReg:"Tescil",fLdg:"İniş",
@@ -211,7 +211,7 @@ tr:{
   sig:"Pilot İmzası",
 },
 en:{
-  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v7.21",
+  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v7.22",
   pilot:"Pilot Name",lic:"Licence No",
   secForm:"✦ Flight Entry",secLog:"✦ Logbook",
   fDate:"Date",fAC:"Aircraft Type",fReg:"Registration",fLdg:"Ldgs",
@@ -730,8 +730,23 @@ function buildDateFromDay(day){
 
 const AC_TYPES=["B737","B747","B777","B787","A319","A320","A321","A330","A350","A380","OTHER"];
 
-const SK="logbook_v721";
-function loadData(){try{const s=localStorage.getItem(SK);return s?JSON.parse(s):{rows:[],pilot:"",license:"",lang:"tr",prevTotals:null};}catch{return{rows:[],pilot:"",license:"",lang:"tr",prevTotals:null};}}
+// Kayıt anahtarı artık SÜRÜMDEN BAĞIMSIZ: yeni sürüme geçince kayıtlar kaybolmaz.
+const SK="logbook_data";
+function loadData(){
+  const empty={rows:[],pilot:"",license:"",lang:"tr",prevTotals:null};
+  try{
+    const s=localStorage.getItem(SK);
+    if(s) return JSON.parse(s);
+    // İlk açılış: aynı tarayıcıdaki eski sürüm anahtarlarından (logbook_v7xx) en dolu olanı devral
+    const old=findOtherVersionData();
+    if(old.length){
+      const best=old.slice().sort((x,y)=>y.n-x.n||(x.key<y.key?1:-1))[0];
+      try{localStorage.setItem(SK,JSON.stringify(best.data));}catch{}
+      return best.data;
+    }
+    return empty;
+  }catch{return empty;}
+}
 function saveData(d){try{localStorage.setItem(SK,JSON.stringify(d));}catch{}}
 // Eski versiyondan veri taşıma: tüm logbook_v* anahtarlarını tarar, en dolu/en güncel olanı bulur
 function findOtherVersionData(){
