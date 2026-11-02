@@ -1,5 +1,5 @@
-// EASA Logbook — offline önbellek (v7.20)
-const CACHE='logbook-v720-v1';
+// EASA Logbook — offline önbellek (v7.21)
+const CACHE='logbook-v721-v1';
 const LOCAL=['./','./index.html','./manifest.json','./icon-32.png','./icon-180.png','./icon-192.png','./icon-512.png'];
 const LIBS=[
   'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',

@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Logbook"/>
 <meta name="theme-color" content="#1a2a3a"/>
-<title>EASA Pilot Logbook v7.20</title>
+<title>EASA Pilot Logbook v7.21</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="icon" href="icon-32.png"/>
 <link rel="apple-touch-icon" href="icon-180.png"/>
@@ -183,7 +183,7 @@ const F="Arial,sans-serif";
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const L={
 tr:{
-  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v7.20",
+  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v7.21",
   pilot:"Pilot Adı",lic:"Lisans No",
   secForm:"✦ Uçuş Girişi",secLog:"✦ Logbook",
   fDate:"Tarih",fAC:"Uçak Tipi",fReg:"Tescil",fLdg:"İniş",
@@ -211,7 +211,7 @@ tr:{
   sig:"Pilot İmzası",
 },
 en:{
-  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v7.20",
+  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v7.21",
   pilot:"Pilot Name",lic:"Licence No",
   secForm:"✦ Flight Entry",secLog:"✦ Logbook",
   fDate:"Date",fAC:"Aircraft Type",fReg:"Registration",fLdg:"Ldgs",
@@ -730,7 +730,7 @@ function buildDateFromDay(day){
 
 const AC_TYPES=["B737","B747","B777","B787","A319","A320","A321","A330","A350","A380","OTHER"];
 
-const SK="logbook_v720";
+const SK="logbook_v721";
 function loadData(){try{const s=localStorage.getItem(SK);return s?JSON.parse(s):{rows:[],pilot:"",license:"",lang:"tr",prevTotals:null};}catch{return{rows:[],pilot:"",license:"",lang:"tr",prevTotals:null};}}
 function saveData(d){try{localStorage.setItem(SK,JSON.stringify(d));}catch{}}
 // Eski versiyondan veri taşıma: tüm logbook_v* anahtarlarını tarar, en dolu/en güncel olanı bulur
@@ -812,6 +812,7 @@ function App(){
   const[fFrom,setFFrom]=useState("");
   const[fTo,setFTo]=useState("");
   const[af,setAf]=useState({from:"",to:""});
+  const[showEntry,setShowEntry]=useState(false); // Bilgi girişi pop-up
   const[apPrompt,setApPrompt]=useState(null); // {ICAO:{name,lat,lon}} — listede olmayan meydanlar
   const[apVer,setApVer]=useState(0);
   // Önceki Sayfa Toplamı — bir kez elle girilir, kalıcı olarak saklanır (localStorage)
@@ -991,6 +992,7 @@ function App(){
     setRows(p=>[...p,...toAdd]);
     showToast(lang==="tr"?`✓ ${toAdd.length} uçuş logbook'a eklendi`:`✓ ${toAdd.length} flights added`);
     clearClPreview();
+    setShowEntry(false);
   }
 
   function clearClPreview(){
@@ -1162,6 +1164,7 @@ function App(){
     }
     setForm({...emptyForm(),acType:form.acType,reg:form.reg,
       pilotTimeModes:form.pilotTimeModes,pilotFnMode:form.pilotFnMode});
+    setShowEntry(false);
   }
 
   // ── Synthetic Training — bağımsız kayıt ──────────────────────────────────────
@@ -1194,6 +1197,7 @@ function App(){
     setRows(p=>[...p,entry]);
     setSynForm(emptySynForm());
     showToast(lang==="tr"?"✓ Synthetic training eklendi":"✓ Synthetic training added");
+    setShowEntry(false);
   }
 
   // ── VERSİYONLAR ARASI VERİ TAŞIMA ──────────────────────────────────────────
@@ -1247,8 +1251,13 @@ function App(){
   function startEdit(r){
     setForm({...r});
     setEditId(r.id);
-    window.scrollTo({top:0,behavior:'smooth'});
+    setShowEntry(true);
   }
+  useEffect(()=>{
+    try{document.body.style.overflow=showEntry?'hidden':'';}catch{}
+    return()=>{try{document.body.style.overflow='';}catch{}};
+  },[showEntry]);
+  function closeEntry(){ if(editId){setEditId(null);setForm(emptyForm());} setShowEntry(false); }
   function cancelEdit(){setEditId(null);setForm(emptyForm());}
   function removeRow(id){
     if(editId===id){setEditId(null);setForm(emptyForm());}
@@ -1267,7 +1276,7 @@ function App(){
       {/* Toast */}
       {toast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top)+12px)",left:"50%",transform:"translateX(-50%)",
         background:"#1a3a1a",color:"#5ecfa0",padding:"9px 20px",borderRadius:8,
-        fontSize:13,zIndex:1000,whiteSpace:"nowrap",boxShadow:"0 4px 20px rgba(0,0,0,.2)",
+        fontSize:13,zIndex:3000,whiteSpace:"nowrap",boxShadow:"0 4px 20px rgba(0,0,0,.2)",
         border:"1px solid #3a6a3a"}}>{toast}</div>}
 
       {/* REFERANS PREVIOUS TOTAL — inline tek satır logbook formatında giriş (modal DEĞİL) */}
@@ -1439,10 +1448,23 @@ function App(){
         </div>);
       })()}
 
-      {/* ── FORM ── */}
-      <div className="no-print" style={{background:"#e8ecf0",borderBottom:"1px solid #c8d4e0",
-        padding:"16px",paddingLeft:"calc(16px + env(safe-area-inset-left))",
-        paddingRight:"calc(16px + env(safe-area-inset-right))"}}>
+      {/* ── FORM (pop-up) ── */}
+      {showEntry&&(
+      <div className="no-print" style={{position:"fixed",inset:0,background:"rgba(0,0,0,.55)",zIndex:1500,
+        overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+      <div style={{background:"#e8ecf0",maxWidth:1180,margin:"12px auto",borderRadius:12,
+        border:"1px solid #c8d4e0",padding:"0 16px 16px",boxShadow:"0 10px 40px rgba(0,0,0,.35)"}}>
+
+        <div style={{position:"sticky",top:0,zIndex:5,background:"#e8ecf0",padding:"12px 0 10px",
+          display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid #c8d4e0",marginBottom:12,
+          borderRadius:"12px 12px 0 0"}}>
+          <div style={{fontSize:12,color:"#1a3a6e",letterSpacing:3,textTransform:"uppercase",fontWeight:700}}>{t.secForm}</div>
+          <button onClick={closeEntry}
+            style={{background:"#fff",border:"1.5px solid #c8d4e0",color:"#4a6080",height:36,padding:"0 14px",
+              borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:F}}>
+            ✕ {lang==="tr"?"Kapat":"Close"}
+          </button>
+        </div>
 
         {editId&&(
           <div style={{background:"#fff8e8",border:"1.5px solid #f5a820",borderRadius:8,
@@ -1450,8 +1472,6 @@ function App(){
             ✏ {lang==="tr"?"Kayıt düzenleniyor — değişiklikleri kaydetmek için Güncelle'ye basın":"Editing entry — press Update to save changes"}
           </div>
         )}
-
-        <div style={{fontSize:11,color:"#1a3a6e",letterSpacing:3,textTransform:"uppercase",marginBottom:12,fontWeight:700}}>{t.secForm}</div>
 
         {/* ── REFERANS PREVIOUS TOTAL — tek satır, logbook sütun sırasına uygun inline giriş ── */}
         <div className="fcard" style={{marginBottom:16,borderColor:"#d4a72c",background:"linear-gradient(180deg,#fffaf0,#fdf3d8)"}}>
@@ -2011,7 +2031,7 @@ function App(){
             {editId?t.updateBtn:t.addBtn}
           </button>
           {editId&&(
-            <button onClick={cancelEdit}
+            <button onClick={closeEntry}
               style={{background:"#f8f9fb",border:"1.5px solid #c8d4e0",color:"#4a6080",
                 padding:"11px 18px",borderRadius:8,cursor:"pointer",fontSize:12,fontFamily:F,height:44}}>
               {t.cancelBtn}
@@ -2020,6 +2040,8 @@ function App(){
           <span style={{fontSize:9,color:"#6a8aaa"}}>Dep/Arr UTC = Block · AMC1 FCL.050 ±30dk · Per-minute interpolation</span>
         </div>
       </div>
+      </div>
+      )}
 
       {/* ── LOGBOOK TABLE ── */}
       <div style={{padding:"16px 0 calc(16px + env(safe-area-inset-bottom))"}}>
@@ -2030,6 +2052,11 @@ function App(){
           marginBottom:10,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
           <div style={{fontSize:11,color:"#1a3a6e",letterSpacing:3,textTransform:"uppercase",fontWeight:700}}>{t.secLog}</div>
           {rows.length>0&&<span style={{fontSize:11,color:"#6a8aaa"}}>· {filtered.length}/{rows.length}</span>}
+          <button onClick={()=>setShowEntry(true)}
+            style={{background:"#1a3a6e",border:"1.5px solid #3a6aaa",color:"#fff",height:38,padding:"0 18px",
+              borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:700,fontFamily:F,letterSpacing:.5}}>
+            ＋ {lang==="tr"?"Bilgi Girişi":"Data Entry"}
+          </button>
           <div style={{display:"flex",gap:6,alignItems:"center",marginLeft:"auto",flexWrap:"wrap"}}>
             <span style={{fontSize:9,color:"#6a8aaa"}}>{t.filterFrom}:</span>
             <input type="date" value={fFrom} onChange={e=>setFFrom(e.target.value)}
@@ -2221,7 +2248,7 @@ function App(){
                       {prevMin.instructorTime>0&&` · Instr: ${hhmm(prevMin.instructorTime)}`}
                       {prevTotals.asOfDate&&` (${lang==="tr"?"ref":"ref"}: ${prevTotals.asOfDate})`}
                     </span>
-                    <button onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}
+                    <button onClick={()=>setShowEntry(true)}
                       className="no-print"
                       style={{marginLeft:8,background:"#eef4fb",border:"1px solid #a0c0e0",color:"#1a3a6e",
                         borderRadius:4,cursor:"pointer",padding:"1px 8px",fontSize:9,fontFamily:F}}>
