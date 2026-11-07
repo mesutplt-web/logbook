@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Logbook"/>
 <meta name="theme-color" content="#1a2a3a"/>
-<title>EASA Pilot Logbook v7.23</title>
+<title>EASA Pilot Logbook v7.24</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="icon" href="icon-32.png"/>
 <link rel="apple-touch-icon" href="icon-180.png"/>
@@ -105,7 +105,7 @@ input[type="date"]{-webkit-appearance:none;}
   .p-tbl th,.p-tbl td{
     border:0.35pt solid #000;
     text-align:center;vertical-align:middle;
-    overflow:hidden;padding:0.2mm 0.3mm;word-break:break-word;
+    overflow:hidden;white-space:nowrap;padding:0.2mm 0.3mm;
     font-family:Arial,sans-serif;}
   /* Group headers — siyah yazı */
   .p-tbl .rg th{
@@ -183,7 +183,7 @@ const F="Arial,sans-serif";
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const L={
 tr:{
-  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v7.23",
+  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v7.24",
   pilot:"Pilot Adı",lic:"Lisans No",
   secForm:"✦ Uçuş Girişi",secLog:"✦ Logbook",
   fDate:"Tarih",fAC:"Uçak Tipi",fReg:"Tescil",fLdg:"İniş",
@@ -211,7 +211,7 @@ tr:{
   sig:"Pilot İmzası",
 },
 en:{
-  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v7.23",
+  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v7.24",
   pilot:"Pilot Name",lic:"Licence No",
   secForm:"✦ Flight Entry",secLog:"✦ Logbook",
   fDate:"Date",fAC:"Aircraft Type",fReg:"Registration",fLdg:"Ldgs",
@@ -450,6 +450,7 @@ function missingAirports(r){
 // ── Crew Log ↔ Logbook karşılaştırma ─────────────────────────────────────────
 const CL_FIELDS=[["acType","Tip"],["reg","Tescil"],["from","Kalkış"],["to","Varış"],["depTime","Off"],["arrTime","On"],["remarks","Notlar"]];
 const _n=v=>String(v==null?"":v).trim().toUpperCase();
+const _nk=(k,v)=>(k==="from"||k==="to")?_n(toIcao(v)):_n(v);
 function matchCrewFlights(flights,rows){
   // Her Crew Log uçuşu için aynı tarihli, aynı rota veya aynı kalkış saatli, henüz eşleşmemiş
   // (synthetic olmayan) logbook satırını bulur. Sonuç: [{status:"new"|"same"|"diff", row, diffs:[{key,label,old,nw}]}]
@@ -458,7 +459,7 @@ function matchCrewFlights(flights,rows){
     let best=null,bestScore=1e9;
     rows.forEach(r=>{
       if(r.isSynthetic||used.has(r.id)||r.date!==f.date) return;
-      const routeOk=_n(r.from)===_n(f.from)&&_n(r.to)===_n(f.to);
+      const routeOk=_nk('from',r.from)===_nk('from',f.from)&&_nk('to',r.to)===_nk('to',f.to);
       const depOk=_n(r.depTime)&&_n(r.depTime)===_n(f.depTime);
       if(!routeOk&&!depOk) return;
       const dd=(pt(r.depTime)!=null&&pt(f.depTime)!=null)?Math.abs(pt(r.depTime)-pt(f.depTime)):600;
@@ -470,11 +471,21 @@ function matchCrewFlights(flights,rows){
     const diffs=[];
     CL_FIELDS.forEach(([k,label])=>{
       if(k==="remarks"&&!_n(f.remarks)) return; // Crew Log'da not yoksa mevcut notu bozma
-      if(_n(best[k])!==_n(f[k])) diffs.push({key:k,label,old:best[k]||"—",nw:f[k]||"—"});
+      if(_nk(k,best[k])!==_nk(k,f[k])){
+        const isAp=(k==="from"||k==="to");
+        diffs.push({key:k,label,old:(isAp?toIcao(best[k]):best[k])||"—",nw:(isAp?toIcao(f[k]):f[k])||"—"});
+      }
     });
     return {status:diffs.length?"diff":"same",row:best,diffs};
   });
 }
+
+// Yazdırma: uzun metni sütuna sığacak şekilde küçült (alt satıra geçmesin)
+function fitPt(text,wmm,max,min){
+  const n=String(text||"").length; if(!n) return max;
+  return Math.max(min||3,Math.min(max,(wmm-0.8)/(n*0.19)));
+}
+const fitStyle=(text,wmm,max,extra)=>({fontSize:fitPt(text,wmm,max)+"pt",...(extra||{})});
 
 function calcFlight(r){
   const off=pt(r.depTime),on=pt(r.arrTime);
@@ -761,17 +772,21 @@ const AC_TYPES=["B737","B747","B777","B787","A319","A320","A321","A330","A350","
 
 // Kayıt anahtarı artık SÜRÜMDEN BAĞIMSIZ: yeni sürüme geçince kayıtlar kaybolmaz.
 const SK="logbook_data";
+function normRows(d){
+  if(d&&Array.isArray(d.rows)) d.rows=d.rows.map(r=>({...r,from:r.from?toIcao(r.from):r.from,to:r.to?toIcao(r.to):r.to}));
+  return d;
+}
 function loadData(){
   const empty={rows:[],pilot:"",license:"",lang:"tr",prevTotals:null};
   try{
     const s=localStorage.getItem(SK);
-    if(s) return JSON.parse(s);
+    if(s) return normRows(JSON.parse(s));
     // İlk açılış: aynı tarayıcıdaki eski sürüm anahtarlarından (logbook_v7xx) en dolu olanı devral
     const old=findOtherVersionData();
     if(old.length){
       const best=old.slice().sort((x,y)=>y.n-x.n||(x.key<y.key?1:-1))[0];
       try{localStorage.setItem(SK,JSON.stringify(best.data));}catch{}
-      return best.data;
+      return normRows(best.data);
     }
     return empty;
   }catch{return empty;}
@@ -877,6 +892,7 @@ function App(){
   const[clError,setClError]=useState(null);
   const[clPreview,setClPreview]=useState(null); // {flights, skipped, rawText}
   const[clSelected,setClSelected]=useState(new Set());
+  const[clSkip,setClSkip]=useState(new Set()); // 'idx:alan' — güncellenmesi istenmeyen alanlar
   const clFileInputRef=useRef(null);
   const dataFileInputRef=useRef(null);
   const[showPasteImport,setShowPasteImport]=useState(null);
@@ -989,6 +1005,7 @@ function App(){
       setClPreview({...parsed,rawText});
       // Varsayılan: tüm bulunan uçuşlar seçili gelsin
       setClSelected(new Set(parsed.flights.map((_,i)=>i)));
+      setClSkip(new Set());
 
       if(parsed.flights.length===0){
         setClError(lang==="tr"
@@ -1024,9 +1041,11 @@ function App(){
       if(!clSelected.has(i)) return;
       const m=clMatches[i]; if(!m||m.status==="new") return;
       if(m.status==="same"){nSame++;return;}
-      const merged={...m.row,date:f.date,acType:f.acType,reg:f.reg,from:f.from,to:f.to,
-        depTime:f.depTime,arrTime:f.arrTime,ldgs:f.ldgs||m.row.ldgs||"1",
-        remarks:_n(f.remarks)?f.remarks:m.row.remarks};
+      // Yalnızca işaretli (atlanmamış) alanlar Crew Log değeriyle değiştirilir
+      const apply=m.diffs.filter(d=>!clSkip.has(i+":"+d.key));
+      if(!apply.length){nSame++;return;}
+      const merged={...m.row};
+      apply.forEach(d=>{merged[d.key]=f[d.key];});
       const calc=calcFlight(merged);
       const totalStr=hhmm(calc.total),dayStr=hhmm(calc.day);
       // Kullanıcının seçtiği pilot süre/fonksiyon alanları korunur, süreleri yeni toplama göre güncellenir
@@ -1067,6 +1086,7 @@ function App(){
   function clearClPreview(){
     setClPreview(null);
     setClSelected(new Set());
+    setClSkip(new Set());
     setClError(null);
   }
 
@@ -1218,7 +1238,7 @@ function App(){
     if(fnMode in pfUpdate) pfUpdate[fnMode]=totalStr;
     // IFR = gündüz süresi
     const entry={...form,
-      from:form.from.toUpperCase(),to:form.to.toUpperCase(),
+      from:toIcao(form.from),to:toIcao(form.to),
       acType:form.acType.toUpperCase(),reg:form.reg.toUpperCase(),
       ...ptUpdate,...pfUpdate,ifr:dayStr,
       // Bu bir uçuş kaydı — synthetic alanları boş kalır
@@ -1285,7 +1305,7 @@ function App(){
       showToast(lang==="tr"?"⚠ Geçersiz dosya":"⚠ Invalid file");
       return;
     }
-    setRows(d.rows||[]);
+    setRows(normRows({rows:d.rows||[]}).rows);
     if(d.pilot!==undefined) setPilot(d.pilot);
     if(d.license!==undefined) setLicense(d.license);
     if(d.prevTotals) setPrevTotals(d.prevTotals);
@@ -1739,8 +1759,8 @@ function App(){
             <div style={{marginTop:10}}>
               <div style={{fontSize:10,color:"#6a3aaa",marginBottom:6,fontWeight:600}}>
                 {lang==="tr"
-                  ?`${clPreview.flights.length} uçuş bulundu — logbook ile karşılaştırıldı. "Farklı" olanlar Crew Log bilgileriyle güncellenir:`
-                  :`${clPreview.flights.length} flights found — compared with logbook. "Different" ones will be updated from the Crew Log:`}
+                  ?`${clPreview.flights.length} uçuş bulundu — logbook ile karşılaştırıldı. "Farklı" olan uçuşlarda değiştirmek istediğiniz alanları işaretleyin:`
+                  :`${clPreview.flights.length} flights found — compared with logbook. "Different" flights: tick the fields you want to change:`}
                 {clPreview.skipped&&clPreview.skipped.length>0&&(
                   <span style={{color:"#9a8aaa",fontWeight:400}}>
                     {" "}({clPreview.skipped.length} {lang==="tr"?"Pass satırı atlandı":"Pass rows skipped"})
@@ -1784,7 +1804,12 @@ function App(){
                             if(m.status==="same") return <span style={{color:"#8a98a8"}}>= {lang==="tr"?"Aynı (değişiklik yok)":"Same (no change)"}</span>;
                             return <div style={{color:"#b06000"}}>
                               <div style={{fontWeight:700}}>≠ {lang==="tr"?"Farklı → güncellenecek":"Different → will update"}</div>
-                              {m.diffs.map(d=><div key={d.key} style={{fontSize:9}}>{d.label}: <s style={{color:"#a05050"}}>{String(d.old).slice(0,22)}</s> → <b>{String(d.nw).slice(0,22)}</b></div>)}
+                              {m.diffs.map(d=>{const sk=clSkip.has(i+":"+d.key);return(
+                                <label key={d.key} style={{display:"flex",alignItems:"center",gap:4,fontSize:9,cursor:"pointer",opacity:sk?0.5:1}}>
+                                  <input type="checkbox" checked={!sk}
+                                    onChange={()=>setClSkip(p=>{const n=new Set(p);const kk=i+":"+d.key;n.has(kk)?n.delete(kk):n.add(kk);return n;})}/>
+                                  <span>{d.label}: <s style={{color:"#a05050"}}>{String(d.old).slice(0,22)}</s> → <b>{String(d.nw).slice(0,22)}</b></span>
+                                </label>);})}
                             </div>;})()}
                         </td>
                       </tr>
@@ -2421,9 +2446,9 @@ function App(){
                   const lc=calcFlight(r);
                   return(
                     <tr key={r.id} className="rd">
-                      <td>{r.date}</td>
-                      <td style={{fontWeight:700}}>{r.acType}</td>
-                      <td>{r.reg}</td>
+                      <td style={fitStyle(r.date,12,6)}>{r.date}</td>
+                      <td style={fitStyle(r.acType,7,6,{fontWeight:700})}>{r.acType}</td>
+                      <td style={fitStyle(r.reg,10,6)}>{r.reg}</td>
                       <td style={{fontWeight:700}}>{r.from}</td>
                       <td>{r.depTime||""}</td>
                       <td style={{fontWeight:700}}>{r.to}</td>
@@ -2432,7 +2457,7 @@ function App(){
                       <td>{r.singleME||""}</td>
                       <td>{r.multiPilot||""}</td>
                       <td className="c-t">{lc.total>0?hhmm(lc.total):""}</td>
-                      <td style={{textAlign:"left",fontSize:"5pt"}}>{r.picName||""}</td>
+                      <td style={fitStyle(r.picName,17,5,{textAlign:"left"})}>{r.picName||""}</td>
                       <td className="c-d">{lc.ldgDay>0?lc.ldgDay:""}</td>
                       <td className="c-n">{lc.ldgNight>0?lc.ldgNight:""}</td>
                       <td className="c-n">{lc.night>0?hhmm(lc.night):""}</td>
@@ -2440,11 +2465,11 @@ function App(){
                       <td style={{fontWeight:700}}>{r.pic||""}</td>
                       <td>{r.coPilot||""}</td>
                       <td>{r.dual||""}</td>
-                      <td style={{fontSize:"5pt"}}>{r.instructorName&&<div style={{fontSize:"4pt",lineHeight:1.1}}>{r.instructorName}</div>}{r.instructorTime||""}</td>
-                      <td className="s-d" style={{fontSize:"5pt"}}>{r.synDate||""}</td>
+                      <td style={{fontSize:"5pt"}}>{r.instructorName&&<div style={fitStyle(r.instructorName,11,4,{lineHeight:1.1})}>{r.instructorName}</div>}{r.instructorTime||""}</td>
+                      <td className="s-d" style={fitStyle(r.synDate,11,5)}>{r.synDate||""}</td>
                       <td className="s-d" style={{fontSize:"5pt"}}>{r.synType||""}</td>
                       <td className="s-d" style={{fontSize:"5pt"}}>{r.synTime||""}</td>
-                      <td style={{textAlign:"left",fontSize:"5pt"}}>{r.remarks||""}</td>
+                      <td style={fitStyle(r.remarks,26,5,{textAlign:"left"})}>{r.remarks||""}</td>
                     </tr>
                   );
                 })}
