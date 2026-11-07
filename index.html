@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Logbook"/>
 <meta name="theme-color" content="#1a2a3a"/>
-<title>EASA Pilot Logbook v7.24</title>
+<title>EASA Pilot Logbook v7.25</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="icon" href="icon-32.png"/>
 <link rel="apple-touch-icon" href="icon-180.png"/>
@@ -183,7 +183,7 @@ const F="Arial,sans-serif";
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const L={
 tr:{
-  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v7.24",
+  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v7.25",
   pilot:"Pilot Adı",lic:"Lisans No",
   secForm:"✦ Uçuş Girişi",secLog:"✦ Logbook",
   fDate:"Tarih",fAC:"Uçak Tipi",fReg:"Tescil",fLdg:"İniş",
@@ -199,7 +199,7 @@ tr:{
   empty:"Kayıt yok",
   pageTotal:"SAYFA TOPLAMI",prevTotal:"REFERANS PREVIOUS TOTAL",grandTotal:"TOPLAM",
   preview:"Önizleme",
-  req:"Zorunlu",min3:"Min 3",
+  req:"Zorunlu",min3:"4 harfli ICAO",
   // Print headers
   ph_title:"PILOT FLIGHT LOGBOOK",ph_sub:"SHGM / EASA Part-FCL.050",
   g1:"TARİH",g2:"UÇAK",g3:"KALKIŞ",g4:"VARIŞ",g5:"TEK PİLOT SÜRESİ",
@@ -211,7 +211,7 @@ tr:{
   sig:"Pilot İmzası",
 },
 en:{
-  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v7.24",
+  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v7.25",
   pilot:"Pilot Name",lic:"Licence No",
   secForm:"✦ Flight Entry",secLog:"✦ Logbook",
   fDate:"Date",fAC:"Aircraft Type",fReg:"Registration",fLdg:"Ldgs",
@@ -227,7 +227,7 @@ en:{
   empty:"No entries",
   pageTotal:"PAGE TOTAL",prevTotal:"REFERENCE PREVIOUS TOTAL",grandTotal:"TOTAL",
   preview:"Preview",
-  req:"Required",min3:"Min 3",
+  req:"Required",min3:"4-letter ICAO",
   ph_title:"PILOT FLIGHT LOGBOOK",ph_sub:"EASA Part-FCL.050",
   g1:"DATE",g2:"AIRCRAFT",g3:"DEPARTURE",g4:"ARRIVAL",g5:"SINGLE PILOT TIME",
   g6:"MULTI PILOT",g7:"TOTAL",g8:"NAME PIC",g9:"LANDING",g10:"OP.CONDITION",
@@ -449,6 +449,7 @@ function missingAirports(r){
 // ── FLIGHT CALC (per-minute interpolation — v1 bug fix preserved) ─────────────
 // ── Crew Log ↔ Logbook karşılaştırma ─────────────────────────────────────────
 const CL_FIELDS=[["acType","Tip"],["reg","Tescil"],["from","Kalkış"],["to","Varış"],["depTime","Off"],["arrTime","On"],["remarks","Notlar"]];
+const isIcao=c=>/^[A-Z0-9]{4}$/.test(String(c||"").toUpperCase());
 const _n=v=>String(v==null?"":v).trim().toUpperCase();
 const _nk=(k,v)=>(k==="from"||k==="to")?_n(toIcao(v)):_n(v);
 function matchCrewFlights(flights,rows){
@@ -486,6 +487,33 @@ function fitPt(text,wmm,max,min){
   return Math.max(min||3,Math.min(max,(wmm-0.8)/(n*0.19)));
 }
 const fitStyle=(text,wmm,max,extra)=>({fontSize:fitPt(text,wmm,max)+"pt",...(extra||{})});
+
+// Yazdırma tablosu: her hücrenin yazı puntosunu, sütun genişliğine tek satıra sığacak şekilde düşür
+const PRINT_COL_MM=[12,7,10,8,8,8,8,8,8,9,9,17,6,6,8,7,8,8,7,11,11,11,10,26];
+function fitPrintTables(){
+  try{
+    const cx=document.createElement('canvas').getContext('2d');
+    document.querySelectorAll('.p-tbl').forEach(tbl=>{
+      tbl.querySelectorAll('tbody tr, tfoot tr').forEach(tr=>{
+        const base=tr.classList.contains('rd')?6:(tr.classList.contains('rt')?5.5:5);
+        let col=0;
+        Array.from(tr.children).forEach(td=>{
+          const span=td.colSpan||1;
+          const w=PRINT_COL_MM.slice(col,col+span).reduce((a,b)=>a+b,0)-0.8;
+          col+=span;
+          const lines=Array.from(td.childNodes).map(n=>n.textContent||"").filter(x=>x.length);
+          if(!lines.length){td.style.fontSize="";return;}
+          const bold=td.style.fontWeight==="700"||td.classList.contains('c-t')||tr.classList.contains('rt');
+          cx.font=(bold?"bold ":"")+"100px Arial";
+          const em=Math.max(...lines.map(x=>cx.measureText(x).width))/100;
+          const need=w/(em*0.3528);
+          td.style.fontSize=Math.max(2.5,Math.min(base,need)).toFixed(2)+"pt";
+        });
+      });
+    });
+  }catch(e){}
+}
+window.addEventListener('beforeprint',fitPrintTables);
 
 function calcFlight(r){
   const off=pt(r.depTime),on=pt(r.arrTime);
@@ -1004,7 +1032,7 @@ function App(){
       const parsed=parseCrewLogText(rawText);
       setClPreview({...parsed,rawText});
       // Varsayılan: tüm bulunan uçuşlar seçili gelsin
-      setClSelected(new Set(parsed.flights.map((_,i)=>i)));
+      setClSelected(new Set(parsed.flights.map((f,i)=>i).filter(i=>isIcao(parsed.flights[i].from)&&isIcao(parsed.flights[i].to))));
       setClSkip(new Set());
 
       if(parsed.flights.length===0){
@@ -1059,7 +1087,7 @@ function App(){
     const nUpd=Object.keys(updates).length;
     // 2) Logbook'ta olmayanları yeni kayıt olarak ekle
     const toAdd=clPreview.flights
-      .filter((_,i)=>clSelected.has(i)&&clMatches[i]&&clMatches[i].status==="new")
+      .filter((f,i)=>clSelected.has(i)&&isIcao(f.from)&&isIcao(f.to)&&clMatches[i]&&clMatches[i].status==="new")
       .map(f=>({
         ...emptyForm(),
         date:f.date,acType:f.acType,reg:f.reg,
@@ -1209,8 +1237,8 @@ function App(){
     const e={};
     if(!form.date)e.date=t.req;
     if(!form.reg)e.reg=t.req;
-    if(!form.from||form.from.length<3)e.from=t.min3;
-    if(!form.to||form.to.length<3)e.to=t.min3;
+    if(!form.from||!isIcao(toIcao(form.from)))e.from=t.min3;
+    if(!form.to||!isIcao(toIcao(form.to)))e.to=t.min3;
     if(!form.depTime)e.depTime=t.req;
     if(!form.arrTime)e.arrTime=t.req;
     setErrors(e);return !Object.keys(e).length;
@@ -1788,18 +1816,19 @@ function App(){
                     {clPreview.flights.map((f,i)=>(
                       <tr key={i} style={{borderTop:"1px solid #eee",background:clSelected.has(i)?"#f5f0fc":"#fff"}}>
                         <td style={{padding:"4px 6px"}}>
-                          <input type="checkbox" checked={clSelected.has(i)} onChange={()=>toggleClFlight(i)}/>
+                          <input type="checkbox" checked={clSelected.has(i)} disabled={!(isIcao(f.from)&&isIcao(f.to))} onChange={()=>toggleClFlight(i)}/>
                         </td>
                         <td style={{padding:"4px 6px"}}>{f.date}</td>
                         <td style={{padding:"4px 6px",fontWeight:600}}>{f.acType}</td>
                         <td style={{padding:"4px 6px"}}>{f.reg}</td>
-                        <td style={{padding:"4px 6px",color:"#0a6a3a",fontWeight:600}}>{f.from}</td>
-                        <td style={{padding:"4px 6px",color:"#0a6a3a",fontWeight:600}}>{f.to}</td>
+                        <td style={{padding:"4px 6px",color:isIcao(f.from)?"#0a6a3a":"#c0392b",fontWeight:600}}>{f.from}</td>
+                        <td style={{padding:"4px 6px",color:isIcao(f.to)?"#0a6a3a":"#c0392b",fontWeight:600}}>{f.to}</td>
                         <td style={{padding:"4px 6px"}}>{f.depTime}</td>
                         <td style={{padding:"4px 6px"}}>{f.arrTime}</td>
                         <td style={{padding:"4px 6px",color:"#6a5a3a",fontSize:10}}>{f.remarks||""}</td>
                         <td style={{padding:"4px 6px",fontSize:10,minWidth:150}}>
                           {(()=>{const m=clMatches[i]; if(!m) return null;
+                            if(!(isIcao(f.from)&&isIcao(f.to))) return <span style={{color:"#c0392b",fontWeight:700}}>⚠ {lang==="tr"?"ICAO (4 harf) değil — atlanır. Formdan ICAO koduyla ekleyin.":"Not a 4-letter ICAO — skipped. Add via the form."}</span>;
                             if(m.status==="new") return <span style={{color:"#0a6a3a",fontWeight:700}}>＋ {lang==="tr"?"Yeni":"New"}</span>;
                             if(m.status==="same") return <span style={{color:"#8a98a8"}}>= {lang==="tr"?"Aynı (değişiklik yok)":"Same (no change)"}</span>;
                             return <div style={{color:"#b06000"}}>
@@ -1955,7 +1984,7 @@ function App(){
             <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
               <div style={{minWidth:80}}>
                 <label className="flabel" style={{fontSize:8}}>ICAO</label>
-                <input value={form.from} onChange={e=>sf("from",e.target.value.toUpperCase())} placeholder="LTFM"
+                <input value={form.from} onChange={e=>sf("from",e.target.value.toUpperCase().slice(0,4))} onBlur={e=>sf("from",toIcao(e.target.value))} maxLength={4} placeholder="LTFM"
                   className={`finp${errors.from?" err":""}`}
                   style={{width:80,height:40,fontSize:20,fontWeight:700,letterSpacing:3,
                     color:depInfo?"#1a6a3a":"#1a2a3a",borderColor:depInfo?"#3a9a5a":undefined,textAlign:"center"}}/>
@@ -1986,7 +2015,7 @@ function App(){
             <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
               <div style={{minWidth:80}}>
                 <label className="flabel" style={{fontSize:8}}>ICAO</label>
-                <input value={form.to} onChange={e=>sf("to",e.target.value.toUpperCase())} placeholder="VHHH"
+                <input value={form.to} onChange={e=>sf("to",e.target.value.toUpperCase().slice(0,4))} onBlur={e=>sf("to",toIcao(e.target.value))} maxLength={4} placeholder="VHHH"
                   className={`finp${errors.to?" err":""}`}
                   style={{width:80,height:40,fontSize:20,fontWeight:700,letterSpacing:3,
                     color:arrInfo?"#1a6a3a":"#1a2a3a",borderColor:arrInfo?"#3a9a5a":undefined,textAlign:"center"}}/>
@@ -2170,7 +2199,7 @@ function App(){
               className="finp" style={{width:132,height:30,fontSize:12}}/>
             <Btn onClick={()=>setAf({from:fFrom,to:fTo})} label={t.filterBtn}/>
             <Btn onClick={()=>{setFFrom("");setFTo("");setAf({from:"",to:""});}} label={t.clearBtn} sec/>
-            <Btn onClick={()=>window.print()} label={t.printBtn} primary/>
+            <Btn onClick={()=>{fitPrintTables();window.print();}} label={t.printBtn} primary/>
           </div>
         </div>
 
