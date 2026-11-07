@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Logbook"/>
 <meta name="theme-color" content="#1a2a3a"/>
-<title>EASA Pilot Logbook v7.22</title>
+<title>EASA Pilot Logbook v7.23</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="icon" href="icon-32.png"/>
 <link rel="apple-touch-icon" href="icon-180.png"/>
@@ -183,7 +183,7 @@ const F="Arial,sans-serif";
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const L={
 tr:{
-  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v7.22",
+  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v7.23",
   pilot:"Pilot Adı",lic:"Lisans No",
   secForm:"✦ Uçuş Girişi",secLog:"✦ Logbook",
   fDate:"Tarih",fAC:"Uçak Tipi",fReg:"Tescil",fLdg:"İniş",
@@ -211,7 +211,7 @@ tr:{
   sig:"Pilot İmzası",
 },
 en:{
-  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v7.22",
+  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v7.23",
   pilot:"Pilot Name",lic:"Licence No",
   secForm:"✦ Flight Entry",secLog:"✦ Logbook",
   fDate:"Date",fAC:"Aircraft Type",fReg:"Registration",fLdg:"Ldgs",
@@ -447,6 +447,35 @@ function missingAirports(r){
 }
 
 // ── FLIGHT CALC (per-minute interpolation — v1 bug fix preserved) ─────────────
+// ── Crew Log ↔ Logbook karşılaştırma ─────────────────────────────────────────
+const CL_FIELDS=[["acType","Tip"],["reg","Tescil"],["from","Kalkış"],["to","Varış"],["depTime","Off"],["arrTime","On"],["remarks","Notlar"]];
+const _n=v=>String(v==null?"":v).trim().toUpperCase();
+function matchCrewFlights(flights,rows){
+  // Her Crew Log uçuşu için aynı tarihli, aynı rota veya aynı kalkış saatli, henüz eşleşmemiş
+  // (synthetic olmayan) logbook satırını bulur. Sonuç: [{status:"new"|"same"|"diff", row, diffs:[{key,label,old,nw}]}]
+  const used=new Set();
+  return flights.map(f=>{
+    let best=null,bestScore=1e9;
+    rows.forEach(r=>{
+      if(r.isSynthetic||used.has(r.id)||r.date!==f.date) return;
+      const routeOk=_n(r.from)===_n(f.from)&&_n(r.to)===_n(f.to);
+      const depOk=_n(r.depTime)&&_n(r.depTime)===_n(f.depTime);
+      if(!routeOk&&!depOk) return;
+      const dd=(pt(r.depTime)!=null&&pt(f.depTime)!=null)?Math.abs(pt(r.depTime)-pt(f.depTime)):600;
+      const score=(routeOk?0:1000)+dd;
+      if(score<bestScore){bestScore=score;best=r;}
+    });
+    if(!best) return {status:"new",row:null,diffs:[]};
+    used.add(best.id);
+    const diffs=[];
+    CL_FIELDS.forEach(([k,label])=>{
+      if(k==="remarks"&&!_n(f.remarks)) return; // Crew Log'da not yoksa mevcut notu bozma
+      if(_n(best[k])!==_n(f[k])) diffs.push({key:k,label,old:best[k]||"—",nw:f[k]||"—"});
+    });
+    return {status:diffs.length?"diff":"same",row:best,diffs};
+  });
+}
+
 function calcFlight(r){
   const off=pt(r.depTime),on=pt(r.arrTime);
   if(off===null||on===null)return{total:0,night:0,day:0,ldgDay:0,ldgNight:0};
@@ -985,10 +1014,33 @@ function App(){
     });
   }
 
+  const clMatches=useMemo(()=>clPreview?matchCrewFlights(clPreview.flights,rows):[],[clPreview,rows]);
+
   function importSelectedFlights(){
     if(!clPreview||clSelected.size===0)return;
+    // 1) Logbook'ta zaten var ve Crew Log'dan FARKLI olanları Crew Log bilgileriyle güncelle
+    const updates={};let nSame=0;
+    clPreview.flights.forEach((f,i)=>{
+      if(!clSelected.has(i)) return;
+      const m=clMatches[i]; if(!m||m.status==="new") return;
+      if(m.status==="same"){nSame++;return;}
+      const merged={...m.row,date:f.date,acType:f.acType,reg:f.reg,from:f.from,to:f.to,
+        depTime:f.depTime,arrTime:f.arrTime,ldgs:f.ldgs||m.row.ldgs||"1",
+        remarks:_n(f.remarks)?f.remarks:m.row.remarks};
+      const calc=calcFlight(merged);
+      const totalStr=hhmm(calc.total),dayStr=hhmm(calc.day);
+      // Kullanıcının seçtiği pilot süre/fonksiyon alanları korunur, süreleri yeni toplama göre güncellenir
+      const tf=["singleSE","singleME","multiPilot","pic","coPilot","dual"];
+      const any=tf.some(k=>merged[k]);
+      tf.forEach(k=>{ if(merged[k]) merged[k]=totalStr; });
+      if(!any){merged.multiPilot=totalStr;merged.pic=totalStr;}
+      if(merged.ifr||!any) merged.ifr=dayStr;
+      updates[m.row.id]=merged;
+    });
+    const nUpd=Object.keys(updates).length;
+    // 2) Logbook'ta olmayanları yeni kayıt olarak ekle
     const toAdd=clPreview.flights
-      .filter((_,i)=>clSelected.has(i))
+      .filter((_,i)=>clSelected.has(i)&&clMatches[i]&&clMatches[i].status==="new")
       .map(f=>({
         ...emptyForm(),
         date:f.date,acType:f.acType,reg:f.reg,
@@ -1004,8 +1056,10 @@ function App(){
         const totalStr=hhmm(calc.total), dayStr=hhmm(calc.day);
         return{...f,multiPilot:totalStr,pic:totalStr,ifr:dayStr};
       });
-    setRows(p=>[...p,...toAdd]);
-    showToast(lang==="tr"?`✓ ${toAdd.length} uçuş logbook'a eklendi`:`✓ ${toAdd.length} flights added`);
+    setRows(p=>[...p.map(r=>updates[r.id]?updates[r.id]:r),...toAdd]);
+    showToast(lang==="tr"
+      ?`✓ ${toAdd.length} eklendi · ${nUpd} güncellendi · ${nSame} aynı`
+      :`✓ ${toAdd.length} added · ${nUpd} updated · ${nSame} unchanged`);
     clearClPreview();
     setShowEntry(false);
   }
@@ -1685,8 +1739,8 @@ function App(){
             <div style={{marginTop:10}}>
               <div style={{fontSize:10,color:"#6a3aaa",marginBottom:6,fontWeight:600}}>
                 {lang==="tr"
-                  ?`${clPreview.flights.length} uçuş bulundu — logbook'a eklemek istediklerinizi seçin:`
-                  :`${clPreview.flights.length} flights found — select which to add to logbook:`}
+                  ?`${clPreview.flights.length} uçuş bulundu — logbook ile karşılaştırıldı. "Farklı" olanlar Crew Log bilgileriyle güncellenir:`
+                  :`${clPreview.flights.length} flights found — compared with logbook. "Different" ones will be updated from the Crew Log:`}
                 {clPreview.skipped&&clPreview.skipped.length>0&&(
                   <span style={{color:"#9a8aaa",fontWeight:400}}>
                     {" "}({clPreview.skipped.length} {lang==="tr"?"Pass satırı atlandı":"Pass rows skipped"})
@@ -1694,7 +1748,7 @@ function App(){
                 )}
               </div>
 
-              <div style={{maxHeight:220,overflowY:"auto",border:"1px solid #d8c8e8",borderRadius:6,background:"#fff"}}>
+              <div style={{maxHeight:300,overflowY:"auto",border:"1px solid #d8c8e8",borderRadius:6,background:"#fff"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
                   <thead>
                     <tr style={{background:"#ede4f5",position:"sticky",top:0}}>
@@ -1707,6 +1761,7 @@ function App(){
                       <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}>Off</th>
                       <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}>On</th>
                       <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}>{lang==="tr"?"Notlar":"Remarks"}</th>
+                      <th style={{padding:"5px 6px",fontSize:9,color:"#6a3aaa"}}>{lang==="tr"?"Durum":"Status"}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1723,6 +1778,15 @@ function App(){
                         <td style={{padding:"4px 6px"}}>{f.depTime}</td>
                         <td style={{padding:"4px 6px"}}>{f.arrTime}</td>
                         <td style={{padding:"4px 6px",color:"#6a5a3a",fontSize:10}}>{f.remarks||""}</td>
+                        <td style={{padding:"4px 6px",fontSize:10,minWidth:150}}>
+                          {(()=>{const m=clMatches[i]; if(!m) return null;
+                            if(m.status==="new") return <span style={{color:"#0a6a3a",fontWeight:700}}>＋ {lang==="tr"?"Yeni":"New"}</span>;
+                            if(m.status==="same") return <span style={{color:"#8a98a8"}}>= {lang==="tr"?"Aynı (değişiklik yok)":"Same (no change)"}</span>;
+                            return <div style={{color:"#b06000"}}>
+                              <div style={{fontWeight:700}}>≠ {lang==="tr"?"Farklı → güncellenecek":"Different → will update"}</div>
+                              {m.diffs.map(d=><div key={d.key} style={{fontSize:9}}>{d.label}: <s style={{color:"#a05050"}}>{String(d.old).slice(0,22)}</s> → <b>{String(d.nw).slice(0,22)}</b></div>)}
+                            </div>;})()}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1735,8 +1799,8 @@ function App(){
                     padding:"9px 20px",borderRadius:6,cursor:clSelected.size>0?"pointer":"default",
                     fontSize:12,fontWeight:700,fontFamily:F}}>
                   {lang==="tr"
-                    ?`✓ Seçilenleri Ekle (${clSelected.size})`
-                    :`✓ Add Selected (${clSelected.size})`}
+                    ?`✓ Seçilenleri Uygula (${clSelected.size})`
+                    :`✓ Apply Selected (${clSelected.size})`}
                 </button>
                 <button onClick={()=>setClSelected(new Set(clPreview.flights.map((_,i)=>i)))}
                   style={{background:"none",border:"1px solid #c8b8e0",color:"#6a3aaa",
