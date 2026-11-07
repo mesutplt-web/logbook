@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Logbook"/>
 <meta name="theme-color" content="#1a2a3a"/>
-<title>EASA Pilot Logbook v7.25</title>
+<title>EASA Pilot Logbook v8</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="icon" href="icon-32.png"/>
 <link rel="apple-touch-icon" href="icon-180.png"/>
@@ -132,18 +132,31 @@ input[type="date"]{-webkit-appearance:none;}
   .i-g{background:#f0e8f5!important;}
 
   /* Column widths — total 287mm (297-10mm margins) */
-  .w1{width:12mm;}.w2{width:7mm;}.w3{width:10mm;}
-  .w4{width:8mm;}.w5{width:8mm;}
-  .w6{width:8mm;}.w7{width:8mm;}
-  .w8{width:8mm;}.w9{width:8mm;}
-  .w10{width:9mm;}.w11{width:9mm;}.w12{width:17mm;}
-  .w13{width:6mm;}.w14{width:6mm;}
-  .w15{width:8mm;}.w16{width:7mm;}
-  .w17{width:8mm;}.w18{width:8mm;}.w19{width:7mm;}
-  .w20{width:11mm;}
-  .w21{width:11mm;}.w22{width:11mm;}.w23{width:10mm;}
-  .w24{width:26mm;}
-  /* 12+7+10+8+8+8+8+8+8+9+9+17+6+6+8+7+8+8+7+11+11+11+10+26 = 287mm ✓ */
+  /* Column widths — toplam tam 287mm (297-10mm kenar). Sayı sütunları 'HHHHH:MM' sığacak kadar geniş */
+  .w1{width:12mm;}
+  .w2{width:8mm;}
+  .w3{width:11mm;}
+  .w4{width:9mm;}
+  .w5{width:9mm;}
+  .w6{width:9mm;}
+  .w7{width:9mm;}
+  .w8{width:11mm;}
+  .w9{width:11mm;}
+  .w10{width:12mm;}
+  .w11{width:12mm;}
+  .w12{width:14mm;}
+  .w13{width:6mm;}
+  .w14{width:6mm;}
+  .w15{width:11mm;}
+  .w16{width:12mm;}
+  .w17{width:12mm;}
+  .w18{width:11mm;}
+  .w19{width:11mm;}
+  .w20{width:13mm;}
+  .w21{width:12mm;}
+  .w22{width:8mm;}
+  .w23{width:11mm;}
+  .w24{width:47mm;}
 
   .p-foot{margin-top:2mm;font-size:5pt;color:#000;
     border-top:0.4pt solid #000;padding-top:1mm;display:flex;justify-content:space-between;}
@@ -183,7 +196,7 @@ const F="Arial,sans-serif";
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const L={
 tr:{
-  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v7.25",
+  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v8",
   pilot:"Pilot Adı",lic:"Lisans No",
   secForm:"✦ Uçuş Girişi",secLog:"✦ Logbook",
   fDate:"Tarih",fAC:"Uçak Tipi",fReg:"Tescil",fLdg:"İniş",
@@ -211,7 +224,7 @@ tr:{
   sig:"Pilot İmzası",
 },
 en:{
-  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v7.25",
+  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v8",
   pilot:"Pilot Name",lic:"Licence No",
   secForm:"✦ Flight Entry",secLog:"✦ Logbook",
   fDate:"Date",fAC:"Aircraft Type",fReg:"Registration",fLdg:"Ldgs",
@@ -489,7 +502,7 @@ function fitPt(text,wmm,max,min){
 const fitStyle=(text,wmm,max,extra)=>({fontSize:fitPt(text,wmm,max)+"pt",...(extra||{})});
 
 // Yazdırma tablosu: her hücrenin yazı puntosunu, sütun genişliğine tek satıra sığacak şekilde düşür
-const PRINT_COL_MM=[12,7,10,8,8,8,8,8,8,9,9,17,6,6,8,7,8,8,7,11,11,11,10,26];
+const PRINT_COL_MM=[12,8,11,9,9,9,9,11,11,12,12,14,6,6,11,12,12,11,11,13,12,8,11,47];
 function fitPrintTables(){
   try{
     const cx=document.createElement('canvas').getContext('2d');
@@ -1796,7 +1809,7 @@ function App(){
                 )}
               </div>
 
-              <div style={{maxHeight:300,overflowY:"auto",border:"1px solid #d8c8e8",borderRadius:6,background:"#fff"}}>
+              <div style={{maxHeight:420,overflowY:"auto",border:"1px solid #d8c8e8",borderRadius:6,background:"#fff"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
                   <thead>
                     <tr style={{background:"#ede4f5",position:"sticky",top:0}}>
@@ -1826,18 +1839,18 @@ function App(){
                         <td style={{padding:"4px 6px"}}>{f.depTime}</td>
                         <td style={{padding:"4px 6px"}}>{f.arrTime}</td>
                         <td style={{padding:"4px 6px",color:"#6a5a3a",fontSize:10}}>{f.remarks||""}</td>
-                        <td style={{padding:"4px 6px",fontSize:10,minWidth:150}}>
+                        <td style={{padding:"4px 8px",fontSize:11,minWidth:260}}>
                           {(()=>{const m=clMatches[i]; if(!m) return null;
                             if(!(isIcao(f.from)&&isIcao(f.to))) return <span style={{color:"#c0392b",fontWeight:700}}>⚠ {lang==="tr"?"ICAO (4 harf) değil — atlanır. Formdan ICAO koduyla ekleyin.":"Not a 4-letter ICAO — skipped. Add via the form."}</span>;
                             if(m.status==="new") return <span style={{color:"#0a6a3a",fontWeight:700}}>＋ {lang==="tr"?"Yeni":"New"}</span>;
                             if(m.status==="same") return <span style={{color:"#8a98a8"}}>= {lang==="tr"?"Aynı (değişiklik yok)":"Same (no change)"}</span>;
-                            return <div style={{color:"#b06000"}}>
-                              <div style={{fontWeight:700}}>≠ {lang==="tr"?"Farklı → güncellenecek":"Different → will update"}</div>
+                            return <div style={{color:"#8a5000"}}>
+                              <div style={{fontWeight:700,fontSize:11,marginBottom:3}}>≠ {lang==="tr"?"Farklı — değiştirilecek alanları seçin:":"Different — choose fields to change:"}</div>
                               {m.diffs.map(d=>{const sk=clSkip.has(i+":"+d.key);return(
-                                <label key={d.key} style={{display:"flex",alignItems:"center",gap:4,fontSize:9,cursor:"pointer",opacity:sk?0.5:1}}>
-                                  <input type="checkbox" checked={!sk}
+                                <label key={d.key} style={{display:"flex",alignItems:"center",gap:6,fontSize:11,cursor:"pointer",padding:"2px 0",opacity:sk?0.55:1}}>
+                                  <input type="checkbox" style={{width:16,height:16,flexShrink:0}} checked={!sk}
                                     onChange={()=>setClSkip(p=>{const n=new Set(p);const kk=i+":"+d.key;n.has(kk)?n.delete(kk):n.add(kk);return n;})}/>
-                                  <span>{d.label}: <s style={{color:"#a05050"}}>{String(d.old).slice(0,22)}</s> → <b>{String(d.nw).slice(0,22)}</b></span>
+                                  <span><b>{d.label}</b>: <s style={{color:"#a05050"}}>{String(d.old).slice(0,26)}</s> → <b style={{color:"#0a6a3a"}}>{String(d.nw).slice(0,26)}</b></span>
                                 </label>);})}
                             </div>;})()}
                         </td>
@@ -2476,8 +2489,8 @@ function App(){
                   return(
                     <tr key={r.id} className="rd">
                       <td style={fitStyle(r.date,12,6)}>{r.date}</td>
-                      <td style={fitStyle(r.acType,7,6,{fontWeight:700})}>{r.acType}</td>
-                      <td style={fitStyle(r.reg,10,6)}>{r.reg}</td>
+                      <td style={fitStyle(r.acType,8,6,{fontWeight:700})}>{r.acType}</td>
+                      <td style={fitStyle(r.reg,11,6)}>{r.reg}</td>
                       <td style={{fontWeight:700}}>{r.from}</td>
                       <td>{r.depTime||""}</td>
                       <td style={{fontWeight:700}}>{r.to}</td>
@@ -2486,7 +2499,7 @@ function App(){
                       <td>{r.singleME||""}</td>
                       <td>{r.multiPilot||""}</td>
                       <td className="c-t">{lc.total>0?hhmm(lc.total):""}</td>
-                      <td style={fitStyle(r.picName,17,5,{textAlign:"left"})}>{r.picName||""}</td>
+                      <td style={fitStyle(r.picName,14,5,{textAlign:"left"})}>{r.picName||""}</td>
                       <td className="c-d">{lc.ldgDay>0?lc.ldgDay:""}</td>
                       <td className="c-n">{lc.ldgNight>0?lc.ldgNight:""}</td>
                       <td className="c-n">{lc.night>0?hhmm(lc.night):""}</td>
@@ -2494,11 +2507,11 @@ function App(){
                       <td style={{fontWeight:700}}>{r.pic||""}</td>
                       <td>{r.coPilot||""}</td>
                       <td>{r.dual||""}</td>
-                      <td style={{fontSize:"5pt"}}>{r.instructorName&&<div style={fitStyle(r.instructorName,11,4,{lineHeight:1.1})}>{r.instructorName}</div>}{r.instructorTime||""}</td>
-                      <td className="s-d" style={fitStyle(r.synDate,11,5)}>{r.synDate||""}</td>
+                      <td style={{fontSize:"5pt"}}>{r.instructorName&&<div style={fitStyle(r.instructorName,13,4,{lineHeight:1.1})}>{r.instructorName}</div>}{r.instructorTime||""}</td>
+                      <td className="s-d" style={fitStyle(r.synDate,12,5)}>{r.synDate||""}</td>
                       <td className="s-d" style={{fontSize:"5pt"}}>{r.synType||""}</td>
                       <td className="s-d" style={{fontSize:"5pt"}}>{r.synTime||""}</td>
-                      <td style={fitStyle(r.remarks,26,5,{textAlign:"left"})}>{r.remarks||""}</td>
+                      <td style={fitStyle(r.remarks,47,5,{textAlign:"left"})}>{r.remarks||""}</td>
                     </tr>
                   );
                 })}
