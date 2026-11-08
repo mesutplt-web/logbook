@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Logbook"/>
 <meta name="theme-color" content="#1a2a3a"/>
-<title>EASA Pilot Logbook v8.1</title>
+<title>EASA Pilot Logbook v8.2</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="icon" href="icon-32.png"/>
 <link rel="apple-touch-icon" href="icon-180.png"/>
@@ -196,7 +196,7 @@ const F="Arial,sans-serif";
 // ── i18n ──────────────────────────────────────────────────────────────────────
 const L={
 tr:{
-  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v8.1",
+  appTitle:"Pilot Uçuş Logbook",appSub:"SHGM / EASA Part-FCL.050 — v8.2",
   pilot:"Pilot Adı",lic:"Lisans No",
   secForm:"✦ Uçuş Girişi",secLog:"✦ Logbook",
   fDate:"Tarih",fAC:"Uçak Tipi",fReg:"Tescil",fLdg:"İniş",
@@ -224,7 +224,7 @@ tr:{
   sig:"Pilot İmzası",
 },
 en:{
-  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v8.1",
+  appTitle:"Pilot Flight Logbook",appSub:"EASA Part-FCL.050 — v8.2",
   pilot:"Pilot Name",lic:"Licence No",
   secForm:"✦ Flight Entry",secLog:"✦ Logbook",
   fDate:"Date",fAC:"Aircraft Type",fReg:"Registration",fLdg:"Ldgs",
@@ -1484,6 +1484,33 @@ function App(){
     return sumRows(base);
   },[computed,af.to,refDate,isFullyBackdatedReport]);
 
+  // Verilen tarih (dahil) itibarıyla toplam değerler: referans + (referanstan sonraki uçuşlar)
+  // ya da referans tarihinden ÖNCEKİ bir tarih isteniyorsa referans − (o tarihten sonra referansa kadar olan uçuşlar).
+  const KEYS=["total","day","night","se","me","mp","pic","co","dual","ifr","synTime","instructorTime","ldgD","ldgN"];
+  const totalsAt=(D)=>{
+    if(!D) return null;
+    const dated=computed.filter(r=>r.date);
+    const out={};
+    if(!refDate){
+      const x=sumRows(dated.filter(r=>r.date<=D));
+      KEYS.forEach(k=>out[k]=x[k]);return out;
+    }
+    if(D>=refDate){
+      const x=sumRows(dated.filter(r=>r.date>refDate&&r.date<=D));
+      KEYS.forEach(k=>out[k]=prevMin[k]+x[k]);
+    }else{
+      const x=sumRows(dated.filter(r=>r.date>D&&r.date<=refDate));
+      KEYS.forEach(k=>out[k]=Math.max(0,prevMin[k]-x[k]));
+    }
+    return out;
+  };
+  const dayBefore=(d)=>{const t=new Date(d+"T00:00:00Z");t.setUTCDate(t.getUTCDate()-1);return t.toISOString().slice(0,10);};
+  const startDay=af.from?dayBefore(af.from):"";
+  const startTots=startDay?totalsAt(startDay):null;   // seçilen aralığın başlangıcından önceki TOPLAM
+  const[qDate,setQDate]=useState("2026-04-30");
+  const qTots=totalsAt(qDate);
+
+  const pm=startTots||prevMin;
   const effectivePrevMin=isFullyBackdatedReport
     ? {total:0,day:0,night:0,se:0,me:0,mp:0,pic:0,co:0,dual:0,ifr:0,synTime:0,instructorTime:0,ldgD:0,ldgN:0}
     : prevMin;
@@ -1952,6 +1979,18 @@ function App(){
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="fcard" style={{marginBottom:12,borderColor:"#d4a72c",background:"#fffaf0"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:6}}>
+            <b style={{fontSize:10,color:"#8a6a10",letterSpacing:1.5}}>{lang==="tr"?"TARİH İTİBARIYLA TOPLAM (başlangıç değerleri)":"TOTALS AS OF DATE (opening values)"}</b>
+            <input type="date" value={qDate} onChange={e=>setQDate(e.target.value)} className="finp" style={{height:32,width:140,fontSize:12}}/>
+            <span style={{fontSize:9,color:"#9a7a20"}}>{lang==="tr"?"Referans değer + referanstan sonraki uçuşlar (referanstan önceki tarihte referanstan çıkarılır).":"Reference + flights after it (for earlier dates, flights are subtracted from the reference)."}</span>
+          </div>
+          {qTots&&<div style={{display:"flex",gap:10,flexWrap:"wrap",fontSize:12}}>
+            {[["Toplam",hhmm(qTots.total)],["SE",hhmm(qTots.se)],["ME",hhmm(qTots.me)],["Çok-P",hhmm(qTots.mp)],["Gündüz",hhmm(qTots.day)],["Gece",hhmm(qTots.night)],["IFR",hhmm(qTots.ifr)],["PIC",hhmm(qTots.pic)],["Yrd.P",hhmm(qTots.co)],["Dual",hhmm(qTots.dual)],["Instr.",hhmm(qTots.instructorTime)],["Synth.",hhmm(qTots.synTime)],["İniş G",qTots.ldgD],["İniş N",qTots.ldgN]].map(([l,v])=>
+              <div key={l} style={{minWidth:62}}><div style={{fontSize:8,color:"#8a6a10",fontWeight:700}}>{l}</div><div style={{fontWeight:700,color:"#00004a"}}>{v}</div></div>)}
+          </div>}
         </div>
 
         {/* ── ACARS Fotoğraf OCR ── */}
@@ -2672,6 +2711,19 @@ function App(){
                   <td>{tots.synTime>0?hhmm(tots.synTime):""}</td>
                   <td></td><td className="no-print"></td>
                 </tr>
+                {startTots&&(
+                <tr className="prev-marker-row">
+                  <td colSpan={7} style={{textAlign:"right",paddingRight:8,fontSize:10,fontWeight:700}}>
+                    {lang==="tr"?"ÖNCEKİ TOPLAM":"PREVIOUS TOTAL"} <span style={{fontWeight:400,fontSize:9}}>({startDay})</span>
+                  </td>
+                  <td>{hhmmBlank(startTots.se)}</td><td>{hhmmBlank(startTots.me)}</td><td>{hhmmBlank(startTots.mp)}</td>
+                  <td className="total">{hhmm(startTots.total)}</td><td></td>
+                  <td className="day">{startTots.ldgD||""}</td><td className="night">{startTots.ldgN||""}</td>
+                  <td className="night">{hhmmBlank(startTots.night)}</td><td>{hhmmBlank(startTots.ifr)}</td>
+                  <td>{hhmmBlank(startTots.pic)}</td><td>{hhmmBlank(startTots.co)}</td><td>{hhmmBlank(startTots.dual)}</td>
+                  <td>{startTots.instructorTime>0?hhmm(startTots.instructorTime):""}</td><td></td><td></td>
+                  <td>{startTots.synTime>0?hhmm(startTots.synTime):""}</td><td></td><td className="no-print"></td>
+                </tr>)}
                 <tr className="prev-row">
                   <td colSpan={20} style={{textAlign:"right",paddingRight:8,fontSize:9,padding:"4px 8px"}}>
                     <span style={{color:"#7a8aaa"}}>
@@ -2817,18 +2869,18 @@ function App(){
                 </tr>
                 <tr className="rp">
                   <td colSpan={7} style={{textAlign:"right",paddingRight:"1mm",fontStyle:"italic"}}>
-                    {t.prevTotal}{prevTotals.asOfDate?` (${lang==="tr"?"ref":"ref"}: ${prevTotals.asOfDate})`:""}
+                    {startTots?`${lang==="tr"?"ÖNCEKİ TOPLAM":"PREVIOUS TOTAL"} (${startDay})`:`${t.prevTotal}${prevTotals.asOfDate?` (ref: ${prevTotals.asOfDate})`:""}`}
                   </td>
-                  <td>{hhmmBlank(prevMin.se)}</td><td>{hhmmBlank(prevMin.me)}</td>
-                  <td>{hhmmBlank(prevMin.mp)}</td>
-                  <td className="c-t">{prevMin.total>0?hhmm(prevMin.total):""}</td><td></td>
-                  <td className="c-d">{prevMin.ldgD||""}</td>
-                  <td className="c-n">{prevMin.ldgN||""}</td>
-                  <td className="c-n">{hhmmBlank(prevMin.night)}</td>
-                  <td>{hhmmBlank(prevMin.ifr)}</td>
-                  <td>{hhmmBlank(prevMin.pic)}</td><td>{hhmmBlank(prevMin.co)}</td><td>{hhmmBlank(prevMin.dual)}</td>
+                  <td>{hhmmBlank(pm.se)}</td><td>{hhmmBlank(pm.me)}</td>
+                  <td>{hhmmBlank(pm.mp)}</td>
+                  <td className="c-t">{pm.total>0?hhmm(pm.total):""}</td><td></td>
+                  <td className="c-d">{pm.ldgD||""}</td>
+                  <td className="c-n">{pm.ldgN||""}</td>
+                  <td className="c-n">{hhmmBlank(pm.night)}</td>
+                  <td>{hhmmBlank(pm.ifr)}</td>
+                  <td>{hhmmBlank(pm.pic)}</td><td>{hhmmBlank(pm.co)}</td><td>{hhmmBlank(pm.dual)}</td>
                   <td></td><td></td><td></td>
-                  <td>{prevMin.synTime>0?hhmm(prevMin.synTime):""}</td><td></td>
+                  <td>{pm.synTime>0?hhmm(pm.synTime):""}</td><td></td>
                 </tr>
                 <tr className="rr">
                   <td colSpan={7} style={{textAlign:"right",paddingRight:"1mm",fontStyle:"italic"}}>{t.grandTotal}</td>
